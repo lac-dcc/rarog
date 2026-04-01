@@ -14,7 +14,8 @@
 
 ### Running the models
 
-The script [iree.sh](scripts/iree.sh) is responsible to convert a model from ONNX to torch MLIR, and compile and run this converted model using the IREE compiler. The script assumes the IREE compiler is installed inside a Python environment located in a folder called `venv` in this repository. If this is not the case, you must:
+The script [iree.sh](scripts/iree.sh) is responsible to convert a model from ONNX to torch MLIR, and compile and run this converted model using the IREE compiler. The script assumes the IREE compiler is installed inside a Python environment located in a folder called `venv` in this repository, with all the necessary dependencies installed (the `requirements.txt` file contains the necessary dependencies for this).
+If this is not the case, you must:
 - If IREE is installed inside a Python environment, set the variable `PYTHON_VENV_PATH`
 - If IREE is built from source out of the `$PATH` environment variable, set the variables `IREE_IMPORT_ONNX`, `IREE_COMPILE` and `IREE_RUN_MODULE`
 

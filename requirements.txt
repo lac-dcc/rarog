@@ -1,0 +1,9 @@
+iree-base-compiler==3.11.0
+iree-base-runtime==3.11.0
+ml_dtypes==0.5.4
+mpmath==1.3.0
+numpy==2.4.4
+onnx==1.21.0
+protobuf==7.34.1
+sympy==1.14.0
+typing_extensions==4.15.0
