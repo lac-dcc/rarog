@@ -1,5 +1,7 @@
 #include "mlir/Dialect/Func/IR/FuncOps.h"
+#include "mlir/Dialect/Linalg/IR/Linalg.h"
 #include "mlir/Dialect/OpenACC/OpenACCUtils.h"
+#include "mlir/Dialect/Tensor/IR/Tensor.h"
 #include "mlir/IR/BuiltinOps.h"
 #include "mlir/Pass/Pass.h"
 
@@ -192,6 +194,18 @@ struct ShufflingNumberPass
       // <results...> = <opName> <operands...>
       vector<string> resultNames, operandNames;
 
+      op->cloneWithoutRegions();
+
+      if (auto linalgTranspose = dyn_cast<linalg::TransposeOp>(op)) {
+        llvm::outs() << linalgTranspose << "\n";
+      }
+
+      if (auto tensorPad = dyn_cast<tensor::PadOp>(op)) {
+        // llvm::outs() << tensorPad << "\n";
+        auto modTensorPad = tensorPad.cloneWithoutRegions();
+        llvm::outs() << modTensorPad << "\n";
+      }
+
       auto opName = op->getName();
       for (Value result : op->getResults()) {
         auto valuePortName = getValuePortName(result);
@@ -210,6 +224,7 @@ struct ShufflingNumberPass
           Vertex *rsV = get_or_insert(resultName);
 
           // G.add_edge between the references to the vertices
+          llvm::outs() << "Edge " << opV->idx << " -> " << rsV->idx << "\n";
           G.add_edge(opV, rsV);
         }
       }
