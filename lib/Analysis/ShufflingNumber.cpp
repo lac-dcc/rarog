@@ -136,11 +136,13 @@ public:
     FuncOp fn = getOperation();
     auto fnName = fn.getName();
 
+    // TODO: Compress graph to only account for Tensor->Tensor operators
     if (VERBOSE)
       llvm::outs() << "Calculating shuffling number for '" << fnName << "'\n";
 
     Graph G;
     map<string, Vertex *> vertices;
+    map<string, bool> isVarTensor;
 
     // * Create vertex if does not exist
     auto get_or_insert = [&](string name) -> Vertex * {
@@ -168,6 +170,19 @@ public:
         auto opName = op.getName();
         for (Value result : op.getResults()) {
           auto valuePortName = getValuePortName(result);
+          mlir::Type resultType = result.getType();
+
+          // TODO: Check if `result` is a tensor
+          if (isTensor(result)) {
+            isVarTensor[valuePortName] = true;
+            // llvm::outs() << "tensor<> ";
+          } else {
+            isVarTensor[valuePortName] = false;
+            // index OR f32
+            // llvm::outs() << valuePortName << " : " << result.getType() <<
+            // "\n";
+          }
+
           resultNames.push_back(valuePortName);
         }
 
@@ -200,6 +215,7 @@ public:
       for (Vertex *v : G.adj[src]) {
         v->in_deg--;
       }
+      G.adj[src].clear();
     }
     if (VERBOSE)
       llvm::outs() << "\n";
@@ -219,13 +235,27 @@ public:
       llvm::outs() << "\n";
     }
 
-    auto srcs = G.get_sources();
-    int numVars = G.V.size();
-    ull shufflingNumber = G.count(srcs);
+    // Count tensors VS non-tensors
+    int tensor_count = 0, non_tensor_count = 0;
+    for (auto v : G.V) {
+      if (isVarTensor[v->idx])
+        tensor_count++;
+      else {
+        non_tensor_count++;
+      }
+    }
 
-    // Number of Variables, Number of Instructions, Shuffling Number
-    llvm::outs() << numVars << "," << numInstructions << "," << shufflingNumber
-                 << "\n";
+    // Counting tensors
+    llvm::outs() << tensor_count << ',' << non_tensor_count << '\n';
+
+    // auto srcs = G.get_sources();
+    // int numVars = G.V.size();
+    // ull shufflingNumber = G.count(srcs);
+
+    // // Number of Variables, Number of Instructions, Shuffling Number
+    // llvm::outs() << numVars << "," << numInstructions << "," <<
+    // shufflingNumber
+    //              << "\n";
   }
 
 private:
