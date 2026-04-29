@@ -231,6 +231,15 @@ public:
 private:
   bool VERBOSE;
 
+  bool isTensor(mlir::Value val) {
+    auto resultType = llvm::dyn_cast<mlir::RankedTensorType>(val.getType());
+    if (!resultType) {
+      return false;
+    } else {
+      return true;
+    }
+  }
+
   // Obtained from pass --view-op-graph
   // https://github.com/llvm/llvm-project/blob/main/mlir/lib/Transforms/ViewOpGraph.cpp#L293
   std::string getValuePortName(Value operand) {
