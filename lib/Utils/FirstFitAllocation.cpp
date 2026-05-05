@@ -133,4 +133,5 @@ void deallocate(size_t startPos, size_t bufferSize,
       return;
     }
   }
+  // TODO: Also treat when no freeInterval after deallocate buffer
 }
