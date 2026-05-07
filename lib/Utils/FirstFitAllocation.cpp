@@ -2,11 +2,11 @@
 #include "llvm/ADT/DenseMap.h"
 #include "llvm/ADT/STLExtras.h"
 #include "llvm/Support/raw_ostream.h"
+#include <algorithm>
 #include <list>
 
 size_t allocate(size_t bufferSize,
                 std::list<std::pair<size_t, size_t>> &freeIntervals);
-void merge_intervals(std::list<std::pair<size_t, size_t>> &freeIntervals);
 void deallocate(size_t startPos, size_t bufferSize,
                 std::list<std::pair<size_t, size_t>> &freeIntervals);
 
@@ -60,11 +60,6 @@ std::pair<llvm::SmallVector<size_t>, size_t> first_fit_allocation(
 
 size_t allocate(size_t bufferSize,
                 std::list<std::pair<size_t, size_t>> &freeIntervals) {
-  llvm::outs() << "\nTrying to allocate buffer of size " << bufferSize << "\n";
-  llvm::outs() << "Available intervals:\n";
-  for (auto [startPos, sz] : freeIntervals) {
-    llvm::outs() << startPos << " " << sz << "\n";
-  }
   for (auto it = freeIntervals.begin(); it != freeIntervals.end(); ++it) {
     if (bufferSize <= it->second) {
       size_t startPos = it->first;
@@ -80,58 +75,48 @@ size_t allocate(size_t bufferSize,
   return -1;
 }
 
-// TODO: We can change this to check only for the imediate previous and next
-// element of the list
-void merge_intervals(std::list<std::pair<size_t, size_t>> &freeIntervals) {
-  llvm::SmallVector<std::list<std::pair<size_t, size_t>>::iterator>
-      mergedIntervals, toErase;
-  size_t startPos, endPos;
-  for (auto it = freeIntervals.begin(); it != freeIntervals.end(); ++it) {
-    if (mergedIntervals.empty()) {
-
-      mergedIntervals.emplace_back(it);
-      startPos = it->first;
-      endPos = it->second + startPos;
-    } else {
-
-      if (it->first == endPos) {
-        mergedIntervals.emplace_back(it);
-        endPos = it->first + it->second;
-      } else {
-        if (mergedIntervals.size() > 1) {
-          freeIntervals.emplace(it, startPos, endPos - startPos);
-          for (auto toEraseIt : mergedIntervals) {
-            toErase.emplace_back(toEraseIt);
-          }
-        }
-        mergedIntervals.clear();
-        mergedIntervals.emplace_back(it);
-        startPos = it->first;
-        endPos = it->second + startPos;
-      }
-    }
-  }
-
-  if (mergedIntervals.size() > 1) {
-    freeIntervals.emplace(mergedIntervals[0], startPos, endPos - startPos);
-    for (auto toEraseIt : mergedIntervals) {
-      toErase.emplace_back(toEraseIt);
-    }
-  }
-
-  for (auto it : toErase) {
-    freeIntervals.erase(it);
-  }
-}
+#define debug(it) llvm::outs() << #it << " = " << it
 
 void deallocate(size_t startPos, size_t bufferSize,
                 std::list<std::pair<size_t, size_t>> &freeIntervals) {
-  for (auto it = freeIntervals.begin(); it != freeIntervals.end(); ++it) {
-    if (it->first > startPos) {
-      freeIntervals.emplace(it, startPos, bufferSize);
-      merge_intervals(freeIntervals);
-      return;
-    }
+
+  auto isAfter = [startPos](std::pair<size_t, size_t> ps) {
+    return ps.first >= startPos;
+  };
+
+  auto it = std::find_if(freeIntervals.begin(), freeIntervals.end(), isAfter);
+
+  // If found, insert interval (startPos,bufferSize) just before iterator
+  if (it != freeIntervals.end()) {
+    freeIntervals.emplace(it, startPos, bufferSize);
+  } else { // Otherwise, insert at the end
+    freeIntervals.push_back({startPos, bufferSize});
   }
-  // TODO: Also treat when no freeInterval after deallocate buffer
+
+  // ? Coalesce neighbouring intervals (it-1)(it)(it+1)
+
+  // * If it is NOT the first element, try joining with the interval before.
+
+  if (it == freeIntervals.begin()) {
+    llvm::outs() << "It's begin \n";
+  } else {
+    llvm::outs() << "It's NOT begin \n";
+  }
+
+  // * If it is NOT the last element, try joining with the interval after
+  if (it == freeIntervals.end()) {
+    llvm::outs() << "It's end\n";
+  } else {
+    llvm::outs() << "It's NOT end\n";
+  }
+
+  // for (auto it = freeIntervals.begin(); it != freeIntervals.end(); ++it) {
+  //   if (it->first > startPos) {
+  //     freeIntervals.emplace(it, startPos, bufferSize);
+  //     // TODO: merge_intervals(freeIntervals);
+  //     return;
+  //   }
+  // }
+  // TODO: Also treat when no freeInterval after deallocate
+  // buffer
 }
