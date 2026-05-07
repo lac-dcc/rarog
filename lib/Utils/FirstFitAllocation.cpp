@@ -86,6 +86,9 @@ void deallocate(size_t startPos, size_t bufferSize,
 
   auto it = std::find_if(freeIntervals.begin(), freeIntervals.end(), isAfter);
 
+  bool isFirst = it == freeIntervals.begin(),
+       isLast = it == freeIntervals.end();
+
   // If found, insert interval (startPos,bufferSize) just before iterator
   if (it != freeIntervals.end()) {
     freeIntervals.emplace(it, startPos, bufferSize);
@@ -93,30 +96,47 @@ void deallocate(size_t startPos, size_t bufferSize,
     freeIntervals.push_back({startPos, bufferSize});
   }
 
-  // ? Coalesce neighbouring intervals (it-1)(it)(it+1)
+  // ? make 'it' point to newly created interval
+  it--;
+
+  // ? Merge neighbouring intervals (it-1)(it)(it+1)
+  auto merge =
+      [&freeIntervals](std::list<std::pair<size_t, size_t>>::iterator p1,
+                       std::list<std::pair<size_t, size_t>>::iterator p2) {
+        auto [pos1, size1] = *p1;
+        auto [pos2, size2] = *p2;
+
+        if (pos1 + size1 != pos2)
+          return false; // Not neighbours
+
+        // Change value of iterator p1
+        *p1 = {pos1, size1 + size2};
+        // Remove iterator p2
+        freeIntervals.erase(p2);
+        return true;
+      };
 
   // * If it is NOT the first element, try joining with the interval before.
-
-  if (it == freeIntervals.begin()) {
-    llvm::outs() << "It's begin \n";
-  } else {
-    llvm::outs() << "It's NOT begin \n";
-  }
+  if (!isFirst) {
+    llvm::outs() << "It's NOT first, try to merge this with before: ";
+    auto curr = it, before = --it++;
+    if (merge(before, curr)) {
+      llvm::outs() << "Success!\n";
+    } else {
+      llvm::outs() << "Fail - Not neighbours!\n";
+    }
+  } else
+    llvm::outs() << "It's first\n";
 
   // * If it is NOT the last element, try joining with the interval after
-  if (it == freeIntervals.end()) {
-    llvm::outs() << "It's end\n";
-  } else {
-    llvm::outs() << "It's NOT end\n";
-  }
-
-  // for (auto it = freeIntervals.begin(); it != freeIntervals.end(); ++it) {
-  //   if (it->first > startPos) {
-  //     freeIntervals.emplace(it, startPos, bufferSize);
-  //     // TODO: merge_intervals(freeIntervals);
-  //     return;
-  //   }
-  // }
-  // TODO: Also treat when no freeInterval after deallocate
-  // buffer
+  if (!isLast) {
+    auto curr = it, after = ++it--;
+    llvm::outs() << "It's NOT last, try to merge this with after:";
+    if (merge(curr, after)) {
+      llvm::outs() << "Success!\n";
+    } else {
+      llvm::outs() << "Fail- Not neighbours!\n";
+    }
+  } else
+    llvm::outs() << "It's last\n";
 }
