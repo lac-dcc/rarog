@@ -14,12 +14,12 @@ namespace rarog {
 
 std::pair<llvm::SmallVector<size_t>, size_t> first_fit_allocation(
     llvm::SmallVector<std::tuple<size_t, size_t, size_t>> buffers) {
+
+  // event := {allocPos, allocPos, size} if its alloc
+  // event := {allocPos, freePos, size} if its dealloc
   llvm::SmallVector<std::tuple<size_t, size_t, size_t>> events;
   llvm::DenseMap<size_t, size_t> bufferOffset;
-
-  size_t neededSize = 0;
-
-  std::list<std::pair<size_t, size_t>> freeIntervals;
+  size_t worstCaseSize = 0;
 
   for (auto [allocPos, freePos, size] : buffers) {
     // Allocation event
@@ -28,15 +28,24 @@ std::pair<llvm::SmallVector<size_t>, size_t> first_fit_allocation(
     // Deallocation event
     events.emplace_back(freePos, allocPos, size);
 
-    neededSize += size;
+    worstCaseSize += size;
   }
+
+  // events sorted by pos
   llvm::sort(events.begin(), events.end());
 
   // Create list of free intervals
-  freeIntervals = {{0, neededSize}};
-  neededSize = 0;
+  std::list<std::pair<size_t, size_t>> freeIntervals = {{0, worstCaseSize}};
+  size_t neededSize = 0;
+
+  llvm::outs() << "[ ";
+  for (auto [intervalPos, intervalSize] : freeIntervals)
+    llvm::outs() << "(" << intervalPos << "," << intervalSize << ") ";
+  llvm::outs() << "]\n";
 
   llvm::SmallVector<size_t> allocationDecisions;
+
+  llvm::outs() << "Events:\n";
   for (auto [pos, allocPos, size] : events) {
     if (pos == allocPos) {
       size_t offset = allocate(size, freeIntervals);
@@ -51,6 +60,11 @@ std::pair<llvm::SmallVector<size_t>, size_t> first_fit_allocation(
       llvm::outs() << "\nDeallocated buffer of size " << size << " at position "
                    << offset << "\n";
     }
+    // Debug: Show what's in freeIntervals
+    llvm::outs() << "[ ";
+    for (auto [intervalPos, intervalSize] : freeIntervals)
+      llvm::outs() << "(" << intervalPos << "," << intervalSize << ") ";
+    llvm::outs() << "]\n";
   }
 
   return {allocationDecisions, neededSize};
@@ -75,14 +89,10 @@ size_t allocate(size_t bufferSize,
   return -1;
 }
 
-#define debug(it) llvm::outs() << #it << " = " << it
-
 void deallocate(size_t startPos, size_t bufferSize,
                 std::list<std::pair<size_t, size_t>> &freeIntervals) {
 
-  auto isAfter = [startPos](std::pair<size_t, size_t> ps) {
-    return ps.first >= startPos;
-  };
+  auto isAfter = [startPos](auto ps) { return ps.first >= startPos; };
 
   auto it = std::find_if(freeIntervals.begin(), freeIntervals.end(), isAfter);
 
@@ -96,47 +106,32 @@ void deallocate(size_t startPos, size_t bufferSize,
     freeIntervals.push_back({startPos, bufferSize});
   }
 
-  // ? make 'it' point to newly created interval
-  it--;
+  // ? Try to Coalesce neighboring intervals
+  auto coalesce = [&freeIntervals](auto p1, auto p2) {
+    auto [pos1, size1] = *p1;
+    auto [pos2, size2] = *p2;
 
-  // ? Merge neighbouring intervals (it-1)(it)(it+1)
-  auto merge =
-      [&freeIntervals](std::list<std::pair<size_t, size_t>>::iterator p1,
-                       std::list<std::pair<size_t, size_t>>::iterator p2) {
-        auto [pos1, size1] = *p1;
-        auto [pos2, size2] = *p2;
+    if (pos1 + size1 != pos2)
+      return; // Not neighbors
 
-        if (pos1 + size1 != pos2)
-          return false; // Not neighbours
+    // Change value of iterator p1
+    *p1 = {pos1, size1 + size2};
+    // Remove iterator p2
+    freeIntervals.erase(p2);
+  };
 
-        // Change value of iterator p1
-        *p1 = {pos1, size1 + size2};
-        // Remove iterator p2
-        freeIntervals.erase(p2);
-        return true;
-      };
+  // ? point to newly created interval
+  auto curr = std::prev(it);
 
-  // * If it is NOT the first element, try joining with the interval before.
+  // * If curr is NOT the first element, try coalescing with interval before.
   if (!isFirst) {
-    llvm::outs() << "It's NOT first, try to merge this with before: ";
-    auto curr = it, before = --it++;
-    if (merge(before, curr)) {
-      llvm::outs() << "Success!\n";
-    } else {
-      llvm::outs() << "Fail - Not neighbours!\n";
-    }
-  } else
-    llvm::outs() << "It's first\n";
+    auto before = std::prev(curr);
+    coalesce(before, curr);
+  }
 
-  // * If it is NOT the last element, try joining with the interval after
+  // * If curr is NOT the last element, try coalescing with interval after
   if (!isLast) {
-    auto curr = it, after = ++it--;
-    llvm::outs() << "It's NOT last, try to merge this with after:";
-    if (merge(curr, after)) {
-      llvm::outs() << "Success!\n";
-    } else {
-      llvm::outs() << "Fail- Not neighbours!\n";
-    }
-  } else
-    llvm::outs() << "It's last\n";
+    auto curr = std::prev(it);
+    coalesce(curr, it);
+  }
 }
