@@ -38,14 +38,8 @@ std::pair<llvm::SmallVector<size_t>, size_t> first_fit_allocation(
   std::list<std::pair<size_t, size_t>> freeIntervals = {{0, worstCaseSize}};
   size_t neededSize = 0;
 
-  llvm::outs() << "[ ";
-  for (auto [intervalPos, intervalSize] : freeIntervals)
-    llvm::outs() << "(" << intervalPos << "," << intervalSize << ") ";
-  llvm::outs() << "]\n";
-
   llvm::SmallVector<size_t> allocationDecisions;
 
-  llvm::outs() << "Events:\n";
   for (auto [pos, allocPos, size] : events) {
     if (pos == allocPos) {
       size_t offset = allocate(size, freeIntervals);
@@ -60,11 +54,6 @@ std::pair<llvm::SmallVector<size_t>, size_t> first_fit_allocation(
       llvm::outs() << "\nDeallocated buffer of size " << size << " at position "
                    << offset << "\n";
     }
-    // Debug: Show what's in freeIntervals
-    llvm::outs() << "[ ";
-    for (auto [intervalPos, intervalSize] : freeIntervals)
-      llvm::outs() << "(" << intervalPos << "," << intervalSize << ") ";
-    llvm::outs() << "]\n";
   }
 
   return {allocationDecisions, neededSize};
