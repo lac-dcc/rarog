@@ -81,21 +81,12 @@ size_t allocate(size_t bufferSize,
 void deallocate(size_t startPos, size_t bufferSize,
                 std::list<std::pair<size_t, size_t>> &freeIntervals) {
 
-  auto isAfter = [startPos](auto ps) { return ps.first >= startPos; };
+  // Insert interval (startPos,bufferSize) keeping ordered positions
+  auto it = std::find_if(freeIntervals.begin(), freeIntervals.end(),
+                         [startPos](auto ps) { return ps.first >= startPos; });
+  freeIntervals.emplace(it, startPos, bufferSize);
 
-  auto it = std::find_if(freeIntervals.begin(), freeIntervals.end(), isAfter);
-
-  bool isFirst = it == freeIntervals.begin(),
-       isLast = it == freeIntervals.end();
-
-  // If found, insert interval (startPos,bufferSize) just before iterator
-  if (it != freeIntervals.end()) {
-    freeIntervals.emplace(it, startPos, bufferSize);
-  } else { // Otherwise, insert at the end
-    freeIntervals.push_back({startPos, bufferSize});
-  }
-
-  // ? Try to Coalesce neighboring intervals
+  // Try to Coalesce neighboring intervals
   auto coalesce = [&freeIntervals](auto p1, auto p2) {
     auto [pos1, size1] = *p1;
     auto [pos2, size2] = *p2;
@@ -109,18 +100,17 @@ void deallocate(size_t startPos, size_t bufferSize,
     freeIntervals.erase(p2);
   };
 
-  // ? point to newly created interval
+  // Point to newly created interval
   auto curr = std::prev(it);
 
-  // * If curr is NOT the first element, try coalescing with interval before.
-  if (!isFirst) {
+  // If curr is NOT the first element, try coalescing with interval before.
+  if (curr != freeIntervals.begin()) {
     auto before = std::prev(curr);
     coalesce(before, curr);
   }
 
-  // * If curr is NOT the last element, try coalescing with interval after
-  if (!isLast) {
-    auto curr = std::prev(it);
+  // If curr is NOT the last element, try coalescing with interval after
+  if (it != freeIntervals.end()) {
     coalesce(curr, it);
   }
 }
