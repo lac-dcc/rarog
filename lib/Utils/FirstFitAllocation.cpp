@@ -104,7 +104,7 @@ void deallocate(size_t startPos, size_t bufferSize,
   if (it != freeIntervals.end()) {
     coalesce(curr, it);
   }
-  
+
   // If curr is NOT the first element, try coalescing with interval before.
   if (curr != freeIntervals.begin()) {
     auto before = std::prev(curr);
