@@ -16,7 +16,7 @@ std::pair<llvm::SmallVector<size_t>, size_t> first_fit_allocation(
     llvm::SmallVector<std::tuple<size_t, size_t, size_t>> buffers) {
 
   // event := {allocPos, allocPos, size} if its alloc
-  // event := {allocPos, freePos, size} if its dealloc
+  // event := {freePos, allocPos, size} if its dealloc
   llvm::SmallVector<std::tuple<size_t, size_t, size_t>> events;
   llvm::DenseMap<size_t, size_t> bufferOffset;
   size_t worstCaseSize = 0;
