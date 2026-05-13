@@ -84,7 +84,7 @@ void deallocate(size_t startPos, size_t bufferSize,
   // Insert interval (startPos,bufferSize) keeping ordered positions
   auto it = std::find_if(freeIntervals.begin(), freeIntervals.end(),
                          [startPos](auto ps) { return ps.first >= startPos; });
-  freeIntervals.emplace(it, startPos, bufferSize);
+  auto curr = freeIntervals.emplace(it, startPos, bufferSize);
 
   // Try to Coalesce neighboring intervals
   auto coalesce = [&freeIntervals](auto p1, auto p2) {
@@ -99,9 +99,6 @@ void deallocate(size_t startPos, size_t bufferSize,
     // Remove iterator p2
     freeIntervals.erase(p2);
   };
-
-  // Point to newly created interval
-  auto curr = std::prev(it);
 
   // If curr is NOT the first element, try coalescing with interval before.
   if (curr != freeIntervals.begin()) {
