@@ -6,8 +6,7 @@ RAROG_OPT_PATH="${RAROG_ROOT}/build/bin/rarog-opt"
 
 MODEL_NAME="${MODEL_NAME:-model_1}"
 
-if ! [ -f $RAROG_OPT_PATH ]
-then
+if [[ ! -f $RAROG_OPT_PATH || $FRESH == true ]]; then
     # echo "rarog-opt is not compiled. Starting compilation process..."
     cd $RAROG_ROOT
     cmake -B build . --fresh
