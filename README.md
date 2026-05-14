@@ -66,6 +66,10 @@ The generation of instances and outputs for memory allocation is managed with th
 - tf2onnx
 - onnx
 
+```
+pip install tensorflow tqdm tf2onnx onnx
+```
+
 ### Generating the models
 
 The Nasbench has over 423k benchmarks but, due to space constraints, only 100 were included in this repository. The script [NASBenchConvert.py](scripts/NASBenchConvert.py) can generate the remaining models, although it will take some time to run (ONNX files are already included on the .gitignore). However, it's necessary to extract the file [nasbench_full.json.tar.gz](nasbench_data/nasbench_full.json.tar.gz) first.
