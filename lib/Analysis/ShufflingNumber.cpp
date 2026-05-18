@@ -126,14 +126,14 @@ struct Graph {
   static inline const ull outOfBounds = 1ULL << 27; //  2^27
 };
 
-struct ShufflingNumberPass
-    : public PassWrapper<ShufflingNumberPass, OperationPass<FuncOp>> {
+struct ShufflingNumberGraphAnalysis {
 
-public:
-  ShufflingNumberPass(bool verbose) : VERBOSE(verbose) {}
+  ShufflingNumberGraphAnalysis(Operation *op) {
+    this->fn = cast<FunctionOpInterface>(op);
+  }
 
-  void runOnOperation() override {
-    FuncOp fn = getOperation();
+  Graph getShufflingNumberGraph(bool VERBOSE = false) {
+
     auto fnName = fn.getName();
 
     if (VERBOSE)
@@ -157,13 +157,10 @@ public:
     // Debug with
     // https://www.techiedelight.com/find-all-possible-topological-orderings-of-dag/
 
-    int numInstructions = 0;
-
     for (Block &blk : fn.getBlocks()) {
       for (Operation &op : blk.getOperations()) {
         // <results...> = <opName> <operands...>
         vector<string> resultNames, operandNames;
-        numInstructions++;
 
         auto opName = op.getName();
         for (Value result : op.getResults()) {
@@ -219,17 +216,11 @@ public:
       llvm::outs() << "\n";
     }
 
-    auto srcs = G.get_sources();
-    int numVars = G.V.size();
-    ull shufflingNumber = G.count(srcs);
-
-    // Number of Variables, Number of Instructions, Shuffling Number
-    llvm::outs() << numVars << "," << numInstructions << "," << shufflingNumber
-                 << "\n";
+    return G;
   }
 
 private:
-  bool VERBOSE;
+  FunctionOpInterface fn;
 
   // Obtained from pass --view-op-graph
   // https://github.com/llvm/llvm-project/blob/main/mlir/lib/Transforms/ViewOpGraph.cpp#L293
@@ -239,6 +230,34 @@ private:
     operand.printAsOperand(os, OpPrintingFlags());
     return buf;
   }
+};
+
+struct ShufflingNumberPass
+    : public PassWrapper<ShufflingNumberPass, OperationPass<FuncOp>> {
+
+public:
+  ShufflingNumberPass(bool verbose) : VERBOSE(verbose) {}
+
+  void runOnOperation() override {
+
+    int numInst = 0;
+    for (Block &blk : getOperation().getBlocks()) {
+      numInst += blk.getOperations().size();
+    }
+
+    auto &analysis = getAnalysis<ShufflingNumberGraphAnalysis>();
+    Graph G = analysis.getShufflingNumberGraph(VERBOSE);
+
+    auto srcs = G.get_sources();
+    int numVars = G.V.size();
+    ull shufflingNumber = G.count(srcs);
+
+    // Number of Variables, Number of Instructions, Shuffling Number
+    llvm::outs() << numVars << "," << numInst << "," << shufflingNumber << "\n";
+  }
+
+private:
+  bool VERBOSE;
 };
 
 std::unique_ptr<mlir::Pass> createShufflingNumberPass(bool verbose) {
