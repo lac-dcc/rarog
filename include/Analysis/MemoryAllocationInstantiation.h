@@ -9,4 +9,4 @@ std::unique_ptr<mlir::Pass> createMemoryAllocationInstantiationPass();
 
 } // namespace rarog
 
-#endif //RAROG_INCLUDE_ANALYSIS_MEMORYALLOCATIONINSTANTIATION_H
+#endif // RAROG_INCLUDE_ANALYSIS_MEMORYALLOCATIONINSTANTIATION_H

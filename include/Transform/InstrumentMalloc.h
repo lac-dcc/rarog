@@ -9,4 +9,4 @@ std::unique_ptr<mlir::Pass> createInstrumentMallocPass();
 
 } // namespace rarog
 
-#endif //RAROG_INCLUDE_TRANSFORM_INSTRUMENTMALLOC_H
+#endif // RAROG_INCLUDE_TRANSFORM_INSTRUMENTMALLOC_H

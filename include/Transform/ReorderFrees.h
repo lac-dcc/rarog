@@ -9,4 +9,4 @@ std::unique_ptr<mlir::Pass> createReorderFreesPass();
 
 } // namespace rarog
 
-#endif //RAROG_INCLUDE_TRANSFORM_REORDERFREES_H
+#endif // RAROG_INCLUDE_TRANSFORM_REORDERFREES_H
