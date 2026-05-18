@@ -4,6 +4,7 @@ add_mlir_library(RarogTransform
     InstrumentMalloc.cpp
     ReorderFrees.cpp
     StaticAllocation.cpp
+    ReorderPOC.cpp
 
     LINK_LIBS PUBLIC
       MLIRIR

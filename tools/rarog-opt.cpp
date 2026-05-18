@@ -22,6 +22,7 @@ int main(int argc, char **argv) {
   rarog::registerNasbenchLoweringPipeline();
   rarog::registerInstrumentMallocPipeline();
   rarog::registerReorderFreesPipeline();
+  rarog::registerReorderPOCPipeline();
   rarog::registerStaticAllocationPipeline();
 
   mlir::DialectRegistry registry;

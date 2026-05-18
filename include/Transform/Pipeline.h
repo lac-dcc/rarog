@@ -6,6 +6,7 @@ namespace rarog {
 void registerNasbenchLoweringPipeline();
 void registerInstrumentMallocPipeline();
 void registerReorderFreesPipeline();
+void registerReorderPOCPipeline();
 void registerStaticAllocationPipeline();
 
 } // namespace rarog
