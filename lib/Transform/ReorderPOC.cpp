@@ -1,4 +1,13 @@
 #include "ReorderPOC.h"
+/*
+/rarog/lib/Transform/ReorderPOC.cpp:2:10: fatal error: 'ShufflingNumber.h' file
+not found
+    2 | #include "ShufflingNumber.h"
+      |          ^~~~~~~~~~~~~~~~~~~
+1 error generated.
+ninja: build stopped: subcommand failed.
+*/
+#include "ShufflingNumber.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/Dialect/LLVMIR/LLVMDialect.h"
 #include "mlir/Dialect/MemRef/IR/MemRef.h"
@@ -18,6 +27,9 @@ struct ReorderPOCPass
 
   void runOnOperation() override {
     // TODO: Invoke Shuffling Number Analysis to get the ShufflingGraph
+    auto &analysis = getAnalysis<ShufflingNumberGraphAnalysis>();
+    Graph G = analysis.getShufflingNumberGraph();
+
     llvm::outs() << "Hello World!\n";
   }
 };
