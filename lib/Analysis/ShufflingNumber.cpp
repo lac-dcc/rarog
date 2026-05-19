@@ -115,8 +115,7 @@ std::string getValuePortName(Value operand) {
   return buf;
 }
 
-Graph ShufflingNumberGraphAnalysis::getShufflingNumberGraph(
-    bool VERBOSE = false) {
+Graph ShufflingNumberGraphAnalysis::getShufflingNumberGraph(bool VERBOSE) {
 
   auto fnName = fn.getName();
 
