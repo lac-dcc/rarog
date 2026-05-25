@@ -1,12 +1,4 @@
 #include "ReorderPOC.h"
-/*
-/rarog/lib/Transform/ReorderPOC.cpp:2:10: fatal error: 'ShufflingNumber.h' file
-not found
-    2 | #include "ShufflingNumber.h"
-      |          ^~~~~~~~~~~~~~~~~~~
-1 error generated.
-ninja: build stopped: subcommand failed.
-*/
 #include "ShufflingNumber.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/Dialect/LLVMIR/LLVMDialect.h"
@@ -23,20 +15,35 @@ namespace rarog {
 namespace {
 
 struct ReorderPOCPass
-    : public PassWrapper<ReorderPOCPass, OperationPass<ModuleOp>> {
+    // ? Check if the correct function is analyzed, otherwise change to ModuleOp
+    // and invoke against the Func inside it
+    : public PassWrapper<ReorderPOCPass, OperationPass<func::FuncOp>> {
 
   void runOnOperation() override {
-    // TODO: Invoke Shuffling Number Analysis to get the ShufflingGraph
     auto &analysis = getAnalysis<ShufflingNumberGraphAnalysis>();
     Graph G = analysis.getShufflingNumberGraph();
 
-    llvm::outs() << "Hello World!\n";
+    // *All the vertices
+    llvm::outs() << "V = {";
+    for (auto v : G.V) {
+      llvm::outs() << " " << v->idx;
+    }
+    llvm::outs() << " }\n";
+
+    llvm::outs() << "Current sources: ";
+    for (auto src : G.get_sources()) {
+      llvm::outs() << src->idx << " ";
+    }
+    llvm::outs() << "\n";
+
+    // TODO: Use the info obtained from the graph to swap instructions that
+    // aren't conflicting
   }
 };
 
 } // namespace
 
-std::unique_ptr<mlir::Pass> rarog::createReorderPOCPass() {
+std::unique_ptr<mlir::Pass> createReorderPOCPass() {
   return std::make_unique<ReorderPOCPass>();
 }
 

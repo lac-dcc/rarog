@@ -23,14 +23,14 @@ if [[ ! -f $RAROG_OPT_PATH || $FRESH == true ]]; then
     cd -
 fi
 
-print_blue "Invoking Proof of Concept Reorder Transofrm for model_$MODEL_IDX"
+print_blue "Invoking Proof of Concept Reorder Transform for model_$MODEL_IDX"
 
 mkdir -p tmp
 
 LINALG_MODEL="${RAROG_ROOT}/tmp/model_${MODEL_IDX}_linalg.mlir"
 OUTPUT_MODEL="${RAROG_ROOT}/tmp/model_${MODEL_IDX}_poc.mlir"
 
-# Analyize with our tool
+# Analyze with our tool
 $RAROG_OPT_PATH \
     --reorder-proof-of-concept \
     $LINALG_MODEL \
