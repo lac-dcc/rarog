@@ -9,3 +9,11 @@ debug/
 .vscode
 *.in
 *.out
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[codz]
+*$py.class
+
+# Exception as example
+!ilp_allocation_output/model_1.out
