@@ -36,7 +36,8 @@ echo "${#LINALGS[@]} models were successful:"
 
 # LINALG to ILP
 for model_name in "${LINALGS[@]}"; do
-    echo "* (TODO) Instantiate ILP $model_name"
-    # MODEL_NAME=$(basename ${model_name%.onnx}) ./scripts/instantiate.sh
+    echo "* Instantiate ILP $model_name"
+    MODEL_NAME=$model_name ./scripts/instantiate.sh
 done
+
 
