@@ -13,6 +13,7 @@ cd bennu
 git lfs track "*.onnx"
 git lfs pull
 '
+RAROG_ROOT="$(cd "$(dirname ${BASH_SOURCE[0]})" && pwd)"
 export MODEL_PATH="${MODEL_PATH:-$HOME/repos/bennu/models}"
 
 # ONNX to LINALG
@@ -38,6 +39,19 @@ echo "${#LINALGS[@]} models were successful:"
 for model_name in "${LINALGS[@]}"; do
     echo "* Instantiate ILP $model_name"
     MODEL_NAME=$model_name ./scripts/instantiate.sh
+done
+
+# Run GUROBI
+for model_name in "${LINALGS[@]}"; do
+    echo "* Invoke GUROBI on $model_name"
+    ILP_IN="${RAROG_ROOT}/tmp/${model_name}.in"
+    ILP_OUT="${RAROG_ROOT}/tmp/${model_name}.out"
+
+    # Already calculated
+    if [ -f $ILP_OUT ]; then continue; fi
+
+    python3 ilp/main.py $ILP_IN $ILP_OUT
+    echo "* Done with $ILP_OUT"
 done
 
 
