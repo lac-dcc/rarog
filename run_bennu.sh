@@ -16,14 +16,27 @@ git lfs pull
 export MODEL_PATH="${MODEL_PATH:-$HOME/repos/bennu/models}"
 
 # ONNX to LINALG
-for model_name in $(ls -1 $MODEL_PATH/*.onnx); do
-    echo "* Create linalg $(basename ${model_name%.onnx})"
-    MODEL_NAME=$(basename ${model_name%.onnx}) ./scripts/create_linalg.sh
+declare -a LINALGS
+for model in $(ls -1 $MODEL_PATH/*.onnx); do
+    model_name=$(basename ${model%.onnx})
+    # echo "* Create linalg $model_name"
+
+    # Run the script
+    MODEL_NAME=$model_name ./scripts/create_linalg.sh
+
+    # Success: add to list
+    if [[ $? -eq 0 ]]; then
+        LINALGS+=($model_name)
+    else
+        echo "Model $model_name failed!"
+    fi
 done
 
-# # LINALG to ILP
-#for model_name in $(ls -1 $MODEL_PATH/*.onnx); do
-    # echo "* (TODO) Instantiate ILP $(basename ${model_name%.onnx})"
+echo "${#LINALGS[@]} models were successful:"
+
+# LINALG to ILP
+for model_name in "${LINALGS[@]}"; do
+    echo "* (TODO) Instantiate ILP $model_name"
     # MODEL_NAME=$(basename ${model_name%.onnx}) ./scripts/instantiate.sh
-#done
+done
 
