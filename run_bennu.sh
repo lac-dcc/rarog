@@ -22,8 +22,8 @@ for model_name in $(ls -1 $MODEL_PATH/*.onnx); do
 done
 
 # # LINALG to ILP
-for model_name in $(ls -1 $MODEL_PATH/*.onnx); do
-    echo "* (TODO) Instantiate ILP $(basename ${model_name%.onnx})"
+#for model_name in $(ls -1 $MODEL_PATH/*.onnx); do
+    # echo "* (TODO) Instantiate ILP $(basename ${model_name%.onnx})"
     # MODEL_NAME=$(basename ${model_name%.onnx}) ./scripts/instantiate.sh
-done
+#done
 
