@@ -9,7 +9,7 @@ fi
 
 MLIR_RUNNER=${MLIR_RUNNER:-mlir-runner}
 INSTRUMENTED_MALLOC="${RAROG_ROOT}/utils/libinstrumented_malloc.so"
-RAROG_MALLOC="${RAROG_ROOT}/utils/librarog_malloc.so"
+RAROG_MALLOC="${RAROG_ROOT}/utils/libstatic_malloc.so"
 MLIR_UTILS=${MLIR_UTILS:-/usr/lib/llvm/lib/libmlir_runner_utils.so}
 MLIR_C_UTILS=${MLIR_C_UTILS:-/usr/lib/llvm/lib/libmlir_c_runner_utils.so}
 

@@ -36,6 +36,6 @@ then
 fi
 
 $RAROG_OPT_PATH \
-    --nasbench-lowering-pipeline="enable-reorder-frees" \
+    --rarog-lowering-pipeline="enable-hoist-dealloc" \
     --static-allocation="result-file=${INSTRUMENTED_OUTPUT} allocation-heuristic=${ALLOCATION_HEURISTIC}" \
     $LINALG_MODEL -o $STATIC_ALLOCATION_MODEL

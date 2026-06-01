@@ -31,5 +31,5 @@ fi
 
 # Apply lowering pipeline
 $RAROG_OPT_PATH \
-    --nasbench-lowering-pipeline \
+    --rarog-lowering-pipeline \
     $LINALG_MODEL -o $LOWERED_MODEL

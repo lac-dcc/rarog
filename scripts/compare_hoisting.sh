@@ -49,18 +49,18 @@ $MLIR_OPT \
     $LINALG_MODEL -o "${RAROG_ROOT}/tmp/${MODEL_NAME}_buffered.mlir"
 
 $RAROG_OPT_PATH \
-    --reorder-frees \
+    --hoist-dealloc \
     $LINALG_MODEL -o "${RAROG_ROOT}/tmp/${MODEL_NAME}_buffered_hoisted.mlir"
 
 # Apply lowering pipeline
 $RAROG_OPT_PATH \
-    --nasbench-lowering-pipeline \
+    --rarog-lowering-pipeline \
     --instrument-malloc \
     $LINALG_MODEL -o $LOWERED_MODEL
 
 # Apply lowering pipeline with dealloc hoisting
 $RAROG_OPT_PATH \
-    --nasbench-lowering-pipeline="enable-reorder-frees" \
+    --rarog-lowering-pipeline="enable-hoist-dealloc" \
     --instrument-malloc \
     $LINALG_MODEL -o $HOISTED_MODEL
 

@@ -19,9 +19,9 @@ int main(int argc, char **argv) {
 
   rarog::registerMemoryAllocationInstantiationPipeline();
   rarog::registerShufflingNumberPipeline();
-  rarog::registerNasbenchLoweringPipeline();
+  rarog::registerRarogLoweringPipeline();
   rarog::registerInstrumentMallocPipeline();
-  rarog::registerReorderFreesPipeline();
+  rarog::registerHoistDeallocPipeline();
   rarog::registerStaticAllocationPipeline();
 
   mlir::DialectRegistry registry;
