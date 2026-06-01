@@ -1,5 +1,6 @@
 add_mlir_library(RarogTransform
     AddRarogMainFunction.cpp
+    HoistAlloc.cpp
     HoistDealloc.cpp
     InstrumentMalloc.cpp
     Pipeline.cpp
