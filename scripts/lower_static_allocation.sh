@@ -1,13 +1,35 @@
 #!/bin/bash
 
-RAROG_ROOT="$(cd "$(dirname ${BASH_SOURCE[0]})/.." && pwd)"
+usage() {
+    echo "Usage: $0 [-a] [-d] [-f] [-h]"
+    echo ""
+    echo "Options:"
+    echo "  -a              Enable allocation hoisting"
+    echo "  -d              Enable deallocation hoisting"
+    echo "  -f              Force recompile of rarog-opt"
+    echo "  -h              Show this help message"
+    exit 1
+}
 
+RAROG_ROOT="$(cd "$(dirname ${BASH_SOURCE[0]})/.." && pwd)"
 RAROG_OPT_PATH="${RAROG_ROOT}/build/bin/rarog-opt"
+ALLOCATION_HOISTING=""
+DEALLOCATION_HOISTING=""
+FRESH=false
+
+while getopts "adfh" OPTION; do
+  case $OPTION in
+    a)  ALLOCATION_HOISTING="enable-reorder-mallocs" ;;
+    d)  DEALLOCATION_HOISTING="enable-reorder-frees" ;;
+    f)  FRESH=true ;;
+    h)  usage ;;
+ esac
+done
 
 MODEL_NAME="${MODEL_NAME:-model_1}"
 
-if [[ ! -f $RAROG_OPT_PATH || $FRESH == true ]]; then
-    # echo "rarog-opt is not compiled. Starting compilation process..."
+if ! [ -f $RAROG_OPT_PATH ] || $FRESH
+then
     cd $RAROG_ROOT
     cmake -B build . --fresh
     cmake --build build
@@ -32,10 +54,12 @@ fi
 if ! [ -f $INSTRUMENTED_OUTPUT ]
 then
     echo "Instrumentation not found, running instrumentation"
+    export ALLOCATION_HOISTING
+    export DEALLOCATION_HOISTING
     bash "${RAROG_ROOT}/scripts/run_instrumented.sh"
 fi
 
-$RAROG_OPT_PATH \
-    --rarog-lowering-pipeline="enable-reorder-frees" \
+/usr/bin/time --format="time elapsed: %e\n" -o "${STATIC_ALLOCATION_MODEL}.log" $RAROG_OPT_PATH \
+    --rarog-lowering-pipeline="$ALLOCATION_HOISTING $DEALLOCATION_HOISTING" \
     --static-allocation="result-file=${INSTRUMENTED_OUTPUT} allocation-heuristic=${ALLOCATION_HEURISTIC}" \
     $LINALG_MODEL -o $STATIC_ALLOCATION_MODEL
