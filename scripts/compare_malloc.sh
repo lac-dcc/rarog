@@ -12,7 +12,7 @@ RAROG_OPT_PATH="${RAROG_ROOT}/build/bin/rarog-opt"
 MLIR_OPT=${MLIR_OPT:-mlir-opt}
 MLIR_RUNNER=${MLIR_RUNNER:-mlir-runner}
 INSTRUMENTED_MALLOC="${RAROG_ROOT}/utils/libinstrumented_malloc.so"
-RAROG_MALLOC="${RAROG_ROOT}/utils/libstatic_malloc.so"
+RAROG_MALLOC="${RAROG_ROOT}/utils/librarog_malloc.so"
 MLIR_UTILS=${MLIR_UTILS:-/usr/lib/llvm/lib/libmlir_runner_utils.so}
 MLIR_C_UTILS=${MLIR_C_UTILS:-/usr/lib/llvm/lib/libmlir_c_runner_utils.so}
 
@@ -34,36 +34,45 @@ then
     cd -
 fi
 
-LINALG_MODEL="${RAROG_ROOT}/tmp/${MODEL_NAME}_linalg.mlir"
-LOWERED_MODEL="${RAROG_ROOT}/tmp/${MODEL_NAME}_lowered.mlir"
-STATIC_ALLOCATION_MODEL="${RAROG_ROOT}/tmp/${MODEL_NAME}_static_allocation.mlir"
+DYNAMIC_BIN="${RAROG_ROOT}/tmp/${MODEL_NAME}_lowered"
+STATIC_BIN="${RAROG_ROOT}/tmp/${MODEL_NAME}_static_allocation"
 
-if ! [ -f $LOWERED_MODEL ]
+if ! [ -f $DYNAMIC_BIN ]
 then
-    bash "${RAROG_ROOT}/scripts/lower.sh" &> /dev/null
+    echo "Compiling dynamic binary"
+    bash "${RAROG_ROOT}/scripts/compile.sh" -ad # &> /dev/null
 fi
 
-if ! [ -f $STATIC_ALLOCATION_MODEL ]
+if ! [ -f $STATIC_BIN ]
 then
-    bash "${RAROG_ROOT}/scripts/lower_static_allocation.sh" &> /dev/null
+    echo "Compiling static binary"
+    bash "${RAROG_ROOT}/scripts/compile_static_allocation.sh" -ad # &> /dev/null
 fi
 
-/usr/bin/time --format="\ntime elapsed: %es\nmax memory used: %Mkb\nCPU used: %P" $MLIR_RUNNER \
-    $LOWERED_MODEL \
-    --entry-point-result=void \
-    --shared-libs=$INSTRUMENTED_MALLOC \
-    --shared-libs=$MLIR_UTILS \
-    --shared-libs=$MLIR_C_UTILS > ${RAROG_ROOT}/tmp/${MODEL_NAME}_output_lowered.txt 2> ${RAROG_ROOT}/tmp/${MODEL_NAME}_lowered.out
+DYNAMIC_OUT="${RAROG_ROOT}/tmp/${MODEL_NAME}_lowered.out"
+DYNAMIC_FILE="${RAROG_ROOT}/tmp/${MODEL_NAME}_output_lowered.txt"
+DYNAMIC_FILE_TAILED="${RAROG_ROOT}/tmp/${MODEL_NAME}_output_lowered_tailed.txt"
 
-/usr/bin/time --format="\ntime elapsed: %es\nmax memory used: %Mkb\nCPU used: %P" $MLIR_RUNNER \
-    $STATIC_ALLOCATION_MODEL \
-    --entry-point-result=void \
-    --shared-libs=$INSTRUMENTED_MALLOC \
-    --shared-libs=$RAROG_MALLOC \
-    --shared-libs=$MLIR_UTILS \
-    --shared-libs=$MLIR_C_UTILS > ${RAROG_ROOT}/tmp/${MODEL_NAME}_output_static_allocation.txt 2> ${RAROG_ROOT}/tmp/${MODEL_NAME}_static_allocation.out
+STATIC_OUT="${RAROG_ROOT}/tmp/${MODEL_NAME}_static_allocation.out"
+STATIC_FILE="${RAROG_ROOT}/tmp/${MODEL_NAME}_output_static.txt"
+STATIC_FILE_TAILED="${RAROG_ROOT}/tmp/${MODEL_NAME}_output_static_tailed.txt"
 
-tail -n1 ${RAROG_ROOT}/tmp/${MODEL_NAME}_output_lowered.txt > ${RAROG_ROOT}/tmp/${MODEL_NAME}_output_lowered_tailed.txt
-tail -n1 ${RAROG_ROOT}/tmp/${MODEL_NAME}_output_static_allocation.txt > ${RAROG_ROOT}/tmp/${MODEL_NAME}_output_static_allocation_tailed.txt
+/usr/bin/time --format="time elapsed: %e\nmax memory used: %M\n" \
+    -o "${DYNAMIC_BIN}.exe.log" $DYNAMIC_BIN > $DYNAMIC_FILE 2> $DYNAMIC_OUT
 
-diff ${RAROG_ROOT}/tmp/${MODEL_NAME}_output_lowered_tailed.txt ${RAROG_ROOT}/tmp/${MODEL_NAME}_output_static_allocation_tailed.txt
+/usr/bin/time --format="time elapsed: %e\nmax memory used: %M\n" \
+    -o "${STATIC_BIN}.exe.log" $STATIC_BIN > $STATIC_FILE 2> $STATIC_OUT
+
+tail -n1 $DYNAMIC_FILE > $DYNAMIC_FILE_TAILED
+tail -n1 $STATIC_FILE > $STATIC_FILE_TAILED
+
+diff $DYNAMIC_FILE_TAILED $STATIC_FILE_TAILED
+if [[ $? = 0 ]]
+then
+    rm $DYNAMIC_FILE
+    rm $DYNAMIC_FILE_TAILED
+    rm $STATIC_FILE
+    rm $STATIC_FILE_TAILED
+else
+    echo "Static output differs from dynamic output"
+fi
