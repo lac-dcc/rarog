@@ -29,6 +29,6 @@ then
 fi
 
 $RAROG_OPT_PATH \
-    --rarog-lowering-pipeline="enable-hoist-dealloc" \
+    --rarog-lowering-pipeline="enable-reorder-frees" \
     --instrument-malloc \
     $LINALG_MODEL -o $INSTRUMENTED_MODEL

@@ -1,5 +1,6 @@
 #include "Pipeline.h"
 #include "AddRarogMainFunction.h"
+#include "HoistAlloc.h"
 #include "HoistDealloc.h"
 #include "InstrumentMalloc.h"
 #include "StaticAllocation.h"
@@ -22,11 +23,15 @@
 
 using namespace mlir;
 
-struct RarogLoweringPipelineOptions
-    : public PassPipelineOptions<RarogLoweringPipelineOptions> {
-  Option<bool> enableHoistDealloc{*this, "enable-hoist-dealloc",
-                                  llvm::cl::desc("Enable hoist-dealloc pass"),
+struct RarogBufferizationPipelineOptions
+    : public PassPipelineOptions<RarogBufferizationPipelineOptions> {
+  Option<bool> enableReorderFrees{*this, "enable-reorder-frees",
+                                  llvm::cl::desc("Enable reorder-frees pass"),
                                   llvm::cl::init(false)};
+
+  Option<bool> enableReorderMallocs{
+      *this, "enable-reorder-mallocs",
+      llvm::cl::desc("Enable reorder-mallocs pass"), llvm::cl::init(false)};
 };
 
 struct StaticAllocationPipelineOptions
@@ -44,8 +49,8 @@ struct StaticAllocationPipelineOptions
 
 namespace {
 
-void addRarogLoweringPipeline(OpPassManager &pm,
-                              const RarogLoweringPipelineOptions &options) {
+void addRarogBufferizationPipeline(
+    OpPassManager &pm, const RarogBufferizationPipelineOptions &options) {
   pm.addPass(rarog::createAddRarogMainFunctionPass());
 
   // --one-shot-bufferize="bufferize-function-boundaries"
@@ -61,7 +66,16 @@ void addRarogLoweringPipeline(OpPassManager &pm,
   // funcPM.addPass(mlir::bufferization::createOptimizeAllocationLivenessPass());
   // funcPM.addPass(mlir::createConvertBufferizationToMemRefPass());
 
-  if (options.enableHoistDealloc) {
+  if (options.enableReorderMallocs) {
+    // Hoist memref.alloc instructions close to first use of allocated buffer
+    pm.addPass(rarog::createHoistAllocPass());
+
+    pm.addPass(createCanonicalizerPass());
+
+    pm.addPass(createCSEPass());
+  }
+
+  if (options.enableReorderFrees) {
     // Hoist memref.realloc instructions close to last use of deallocated buffer
     pm.addPass(rarog::createHoistDeallocPass());
 
@@ -69,6 +83,11 @@ void addRarogLoweringPipeline(OpPassManager &pm,
 
     pm.addPass(createCSEPass());
   }
+}
+
+void addRarogLoweringPipeline(
+    OpPassManager &pm, const RarogBufferizationPipelineOptions &options) {
+  addRarogBufferizationPipeline(pm, options);
 
   // --convert-linalg-to-loops
   pm.addPass(createConvertLinalgToLoopsPass());
@@ -113,34 +132,19 @@ void addStaticAllocationPipeline(
   pm.addPass(createCanonicalizerPass());
 }
 
-void addHoistDeallocPipeline(OpPassManager &pm) {
-  // --one-shot-bufferize="bufferize-function-boundaries"
-  bufferization::OneShotBufferizePassOptions bufferizationOptions;
-  bufferizationOptions.bufferizeFunctionBoundaries = true;
-  pm.addPass(bufferization::createOneShotBufferizePass(bufferizationOptions));
-
-  // --buffer-deallocation-pipeline
-  // funcPM.addPass(bufferization::createBufferLoopHoistingPass());
-  bufferization::BufferDeallocationPipelineOptions bufferDeallocOptions;
-  mlir::bufferization::buildBufferDeallocationPipeline(pm,
-                                                       bufferDeallocOptions);
-
-  // Hoist memref.realloc instructions close to last use of deallocated buffer
-  pm.addPass(rarog::createHoistDeallocPass());
-
-  pm.addPass(createCanonicalizerPass());
-
-  pm.addPass(createCSEPass());
-}
-
 } // namespace
 
 namespace rarog {
 
+void registerRarogBufferizationPipeline() {
+  PassPipelineRegistration<RarogBufferizationPipelineOptions>(
+      "rarog-bufferization-pipeline",
+      "Insert main function and bufferize model", addRarogLoweringPipeline);
+}
+
 void registerRarogLoweringPipeline() {
-  PassPipelineRegistration<RarogLoweringPipelineOptions>(
-      "rarog-lowering-pipeline",
-      "Insert main function and lower ML model to llvm",
+  PassPipelineRegistration<RarogBufferizationPipelineOptions>(
+      "rarog-lowering-pipeline", "Lower model to llvm",
       addRarogLoweringPipeline);
 }
 
@@ -149,13 +153,6 @@ void registerInstrumentMallocPipeline() {
       "instrument-malloc",
       "Change calls to malloc into calls to instrument_malloc",
       addInstrumentMallocPipeline);
-}
-
-void registerHoistDeallocPipeline() {
-  PassPipelineRegistration<>("hoist-dealloc",
-                             "Hoist memref.realloc instructions close to last "
-                             "use of deallocated buffer",
-                             addHoistDeallocPipeline);
 }
 
 void registerStaticAllocationPipeline() {
