@@ -38,7 +38,8 @@ struct StaticAllocationPipelineOptions
 
   Option<std::string> allocationHeuristic{
       *this, "allocation-heuristic",
-      llvm::cl::desc("<Available allocation heuristics: no-free, first-fit>"),
+      llvm::cl::desc(
+          "<Available allocation heuristics: no-free, first-fit, ilp>"),
       llvm::cl::init("first-fit")};
 };
 

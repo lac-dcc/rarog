@@ -1,5 +1,7 @@
 #include "FirstFitAllocation.h"
+#include "ILPAllocation.h"
 #include "NaiveAllocation.h"
+
 #include "mlir/Dialect/LLVMIR/LLVMDialect.h"
 #include "mlir/IR/Block.h"
 #include "mlir/IR/BuiltinOps.h"
@@ -136,6 +138,8 @@ public:
       buffers.emplace_back(ptrMetadata.at(i));
     }
 
+    // TODO: Find a way to pass model_name to the allocation heuristic, since
+    // it has to know which file to open...
     auto [allocations, neededSize] = run_static_allocation(buffers);
 
     // Define mallocSize as the needed size to allocate the buffers in the
@@ -228,7 +232,9 @@ private:
       llvm::SmallVector<std::tuple<size_t, size_t, size_t>> buffers) {
     if (AllocationHeuristic == "no-free") {
       return naive_allocation(buffers);
-    } else {
+    } else if (AllocationHeuristic == "ilp") {
+      return ilp_allocation(buffers);
+    } else { // first-fit
       return first_fit_allocation(buffers);
     }
   }
