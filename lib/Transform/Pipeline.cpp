@@ -41,6 +41,11 @@ struct StaticAllocationPipelineOptions
       llvm::cl::desc(
           "<Available allocation heuristics: no-free, first-fit, ilp>"),
       llvm::cl::init("first-fit")};
+
+  // Possibly a heuristic file
+  Option<std::string> ilpFilename{
+      *this, "ilp-file", llvm::cl::desc("<ILP heuristic solution file>"),
+      llvm::cl::Optional};
 };
 
 namespace {
@@ -108,7 +113,8 @@ void addStaticAllocationPipeline(
   // pm.addPass(createCanonicalizerPass());
 
   pm.addPass(rarog::createStaticAllocationPass(options.resultFilename,
-                                               options.allocationHeuristic));
+                                               options.allocationHeuristic,
+                                               options.ilpFilename));
 
   // --canonicalize
   pm.addPass(createCanonicalizerPass());

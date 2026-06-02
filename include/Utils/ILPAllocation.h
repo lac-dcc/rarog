@@ -6,7 +6,8 @@
 namespace rarog {
 
 std::pair<llvm::SmallVector<size_t>, size_t>
-ilp_allocation(llvm::SmallVector<std::tuple<size_t, size_t, size_t>> buffers);
+ilp_allocation(llvm::SmallVector<std::tuple<size_t, size_t, size_t>> buffers,
+               std::string ilpFilename);
 
 } // namespace rarog
 

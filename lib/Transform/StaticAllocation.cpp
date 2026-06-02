@@ -25,9 +25,9 @@ struct StaticAllocationPass
 
 public:
   StaticAllocationPass(std::string resultFilename,
-                       std::string allocationHeuristic)
+                       std::string allocationHeuristic, std::string ilpFilename)
       : ResultFilename(resultFilename),
-        AllocationHeuristic(allocationHeuristic) {}
+        AllocationHeuristic(allocationHeuristic), IlpFilename(ilpFilename) {}
 
   void runOnOperation() override {
     if (!llvm::sys::fs::exists(ResultFilename)) {
@@ -138,8 +138,6 @@ public:
       buffers.emplace_back(ptrMetadata.at(i));
     }
 
-    // TODO: Find a way to pass model_name to the allocation heuristic, since
-    // it has to know which file to open...
     auto [allocations, neededSize] = run_static_allocation(buffers);
 
     // Define mallocSize as the needed size to allocate the buffers in the
@@ -223,6 +221,7 @@ public:
 private:
   std::string ResultFilename;
   std::string AllocationHeuristic;
+  std::string IlpFilename;
   llvm::SmallVector<size_t> bufferSizes;
 
   // Input: vector of triples containing, for each buffer: alloc position, free
@@ -233,7 +232,7 @@ private:
     if (AllocationHeuristic == "no-free") {
       return naive_allocation(buffers);
     } else if (AllocationHeuristic == "ilp") {
-      return ilp_allocation(buffers);
+      return ilp_allocation(buffers, IlpFilename);
     } else { // first-fit
       return first_fit_allocation(buffers);
     }
@@ -300,9 +299,14 @@ private:
 
 std::unique_ptr<mlir::Pass>
 createStaticAllocationPass(std::string resultFilename,
-                           std::string allocationHeuristic) {
+                           std::string allocationHeuristic,
+                           std::string ilpFilename
+
+) {
   return std::make_unique<StaticAllocationPass>(resultFilename,
-                                                allocationHeuristic);
+                                                allocationHeuristic, ilpFilename
+
+  );
 }
 
 } // namespace rarog

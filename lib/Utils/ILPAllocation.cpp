@@ -12,14 +12,14 @@ namespace rarog {
 /// @brief Consults a .out file that was produced by the ILP for the
 /// allocationDecisions
 std::pair<llvm::SmallVector<size_t>, size_t>
-ilp_allocation(llvm::SmallVector<std::tuple<size_t, size_t, size_t>> buffers) {
+ilp_allocation(llvm::SmallVector<std::tuple<size_t, size_t, size_t>> buffers,
+               std::string ilpFilename) {
 
   llvm::SmallVector<size_t> allocationDecisions;
   size_t maximum_offset = 0;
 
-  // !WIP! Assume it's model_1
   std::string line;
-  std::ifstream ilp_file("tmp/model_1_ilp.out");
+  std::ifstream ilp_file(ilpFilename);
 
   if (ilp_file.is_open()) {
     while (getline(ilp_file, line)) {
@@ -47,7 +47,7 @@ ilp_allocation(llvm::SmallVector<std::tuple<size_t, size_t, size_t>> buffers) {
 
     ilp_file.close();
   } else
-    llvm::outs() << "Unable to open file\n";
+    llvm::outs() << "Unable to open ILP file \"" << ilpFilename << "\"!\n";
 
   return {allocationDecisions, maximum_offset};
 }
