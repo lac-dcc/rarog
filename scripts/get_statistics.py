@@ -1,5 +1,6 @@
 import json
 import os
+from typing import Literal
 
 tmp_results_path = os.environ.get("TMP_RESULTS_PATH", "tmp")
 json_results_path = os.environ.get("JSON_RESULTS_PATH", ".")
@@ -18,8 +19,25 @@ s_compile_logs = [s_model + ".ll.log", s_model + ".log"]
 s_execution_log = s_model + ".exe.log"
 s_memory_log = s_model + ".out"
 
+Stats = Literal[
+    "mlir_lowering_time",
+    "total_compilation_time",
+    "execution_time",
+    "total_memory",
+    "total_buffer_memory",
+    "buffer_memory",
+]
 
-dt: dict[str, dict[str, float]] = {"dynamic": {}, "static": {}}
+dt: dict[
+    Literal["dynamic", "static"],
+    dict[
+        Stats,
+        float,
+    ],
+] = {
+    "dynamic": {},
+    "static": {},
+}
 
 
 ### Dynamic statistics
