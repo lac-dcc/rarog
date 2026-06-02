@@ -48,6 +48,7 @@ then
     bash "${RAROG_ROOT}/scripts/lower_static_allocation.sh" &> /dev/null
 fi
 
+# TODO: Compare with the ILP allocation
 /usr/bin/time --format="\ntime elapsed: %es\nmax memory used: %Mkb\nCPU used: %P" $MLIR_RUNNER \
     $LOWERED_MODEL \
     --entry-point-result=void \
