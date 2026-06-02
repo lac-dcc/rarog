@@ -13,7 +13,7 @@ cd bennu
 git lfs track "*.onnx"
 git lfs pull
 '
-RAROG_ROOT="$(cd "$(dirname ${BASH_SOURCE[0]})" && pwd)"
+RAROG_ROOT="$(cd "$(dirname ${BASH_SOURCE[0]})/.." && pwd)"
 export MODEL_PATH="${MODEL_PATH:-$HOME/repos/bennu/models}"
 
 # ONNX to LINALG
@@ -45,7 +45,7 @@ done
 for model_name in "${LINALGS[@]}"; do
     echo "* Invoke GUROBI on $model_name"
     ILP_IN="${RAROG_ROOT}/tmp/${model_name}.in"
-    ILP_OUT="${RAROG_ROOT}/tmp/${model_name}.out"
+    ILP_OUT="${RAROG_ROOT}/tmp/${model_name}_ilp.out"
 
     # Already calculated
     if [ -f $ILP_OUT ]; then continue; fi
@@ -53,5 +53,7 @@ for model_name in "${LINALGS[@]}"; do
     python3 ilp/main.py $ILP_IN $ILP_OUT
     echo "* Done with $ILP_OUT"
 done
+
+# TODO: Run experiment
 
 
