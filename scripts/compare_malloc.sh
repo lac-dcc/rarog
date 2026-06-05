@@ -2,77 +2,64 @@
 
 RAROG_ROOT="$(cd "$(dirname ${BASH_SOURCE[0]})/.." && pwd)"
 
-if [ -f ${RAROG_ROOT}/.env ]
+source "${RAROG_ROOT}/scripts/config_args.sh" $@
+RETURN_CODE=$?
+if [[ $RETURN_CODE != 0 ]]
 then
-    source ${RAROG_ROOT}/.env
+    exit $RETURN_CODE
 fi
 
-RAROG_OPT_PATH="${RAROG_ROOT}/build/bin/rarog-opt"
+echo -e "Processing dynamic allocation $(basename $MODEL_PATH)/$MODEL_NAME"
 
-MLIR_OPT=${MLIR_OPT:-mlir-opt}
-MLIR_RUNNER=${MLIR_RUNNER:-mlir-runner}
-INSTRUMENTED_MALLOC="${RAROG_ROOT}/utils/libinstrumented_malloc.so"
-RAROG_MALLOC="${RAROG_ROOT}/utils/librarog_malloc.so"
-MLIR_UTILS=${MLIR_UTILS:-/usr/lib/llvm/lib/libmlir_runner_utils.so}
-MLIR_C_UTILS=${MLIR_C_UTILS:-/usr/lib/llvm/lib/libmlir_c_runner_utils.so}
-
-
-# MODEL_PATH="${MODEL_PATH:-$RAROG_ROOT/onnx_models}"
-MODEL_NAME="${MODEL_NAME:-model_1}"
-
-if ! [ -f $RAROG_OPT_PATH ]
-then
-    # echo "rarog-opt is not compiled. Starting compilation process..."
-    cd $RAROG_ROOT
-    cmake -B build . --fresh
-    cmake --build build
-    if [[ $? != 0 ]]
-    then
-        echo "Compilation failed! Terminating..."
-        exit 1
-    fi
-    cd -
-fi
-
-DYNAMIC_BIN="${RAROG_ROOT}/tmp/${MODEL_NAME}_lowered"
-STATIC_BIN="${RAROG_ROOT}/tmp/${MODEL_NAME}_static_allocation"
-
-if ! [ -f $DYNAMIC_BIN ]
+if ! [ -f $DYNAMIC_BINARY ] || $FRESH
 then
     echo "Compiling dynamic binary"
-    bash "${RAROG_ROOT}/scripts/compile.sh" -ad # &> /dev/null
+    bash "${RAROG_ROOT}/scripts/compile_dynamic_allocation.sh" $@
+    echo "Compilation finished"
 fi
 
-if ! [ -f $STATIC_BIN ]
+DYNAMIC_OUTPUT_TAILED="${DYNAMIC_OUTPUT}.tailed"
+
+# Running dynamic model
+echo "Running dynamic model"
+/usr/bin/time --format="time elapsed: %e\nmax memory used: %M\n" \
+    -o "$DYNAMIC_EXECUTION_LOG" $DYNAMIC_BINARY > $DYNAMIC_OUTPUT 2> $DYNAMIC_LOG
+
+tail -n1 $DYNAMIC_OUTPUT > $DYNAMIC_OUTPUT_TAILED
+
+echo -e "Finished processing dynamic allocation\e[0m\n\n"
+
+
+
+echo -e "Processing static allocation for model $(basename $MODEL_PATH)/$MODEL_NAME"
+
+if ! [ -f $STATIC_BINARY ] || $FRESH
 then
     echo "Compiling static binary"
-    bash "${RAROG_ROOT}/scripts/compile_static_allocation.sh" -ad # &> /dev/null
+    bash "${RAROG_ROOT}/scripts/compile_static_allocation.sh" $@
+    echo "Compilation finished"
 fi
 
-DYNAMIC_OUT="${RAROG_ROOT}/tmp/${MODEL_NAME}_lowered.out"
-DYNAMIC_FILE="${RAROG_ROOT}/tmp/${MODEL_NAME}_output_lowered.txt"
-DYNAMIC_FILE_TAILED="${RAROG_ROOT}/tmp/${MODEL_NAME}_output_lowered_tailed.txt"
+STATIC_OUTPUT_TAILED="${STATIC_OUTPUT}.tailed"
 
-STATIC_OUT="${RAROG_ROOT}/tmp/${MODEL_NAME}_static_allocation.out"
-STATIC_FILE="${RAROG_ROOT}/tmp/${MODEL_NAME}_output_static.txt"
-STATIC_FILE_TAILED="${RAROG_ROOT}/tmp/${MODEL_NAME}_output_static_tailed.txt"
-
+# Running static model
+echo "Running dynamic model"
 /usr/bin/time --format="time elapsed: %e\nmax memory used: %M\n" \
-    -o "${DYNAMIC_BIN}.exe.log" $DYNAMIC_BIN > $DYNAMIC_FILE 2> $DYNAMIC_OUT
+    -o "$STATIC_EXECUTION_LOG" $STATIC_BINARY > $STATIC_OUTPUT 2> $STATIC_LOG
 
-/usr/bin/time --format="time elapsed: %e\nmax memory used: %M\n" \
-    -o "${STATIC_BIN}.exe.log" $STATIC_BIN > $STATIC_FILE 2> $STATIC_OUT
+tail -n1 $STATIC_OUTPUT > $STATIC_OUTPUT_TAILED
 
-tail -n1 $DYNAMIC_FILE > $DYNAMIC_FILE_TAILED
-tail -n1 $STATIC_FILE > $STATIC_FILE_TAILED
+echo -e "Finished processing dynamic allocation\e[0m\n"
 
-diff $DYNAMIC_FILE_TAILED $STATIC_FILE_TAILED
+# Comparing outputs
+diff $DYNAMIC_OUTPUT_TAILED $STATIC_OUTPUT_TAILED
 if [[ $? = 0 ]]
 then
-    rm $DYNAMIC_FILE
-    rm $DYNAMIC_FILE_TAILED
-    rm $STATIC_FILE
-    rm $STATIC_FILE_TAILED
+    rm $DYNAMIC_OUTPUT
+    rm $DYNAMIC_OUTPUT_TAILED
+    rm $STATIC_OUTPUT
+    rm $STATIC_OUTPUT_TAILED
 else
-    echo "Static output differs from dynamic output"
+    echo -e "\e[0;31mERROR:\e[0m Static output differs from dynamic output"
+    exit 1
 fi
