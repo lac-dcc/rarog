@@ -1,8 +1,9 @@
 add_mlir_library(RarogTransform
-    Pipeline.cpp
-    AddNasbenchMainFunction.cpp
+    AddRarogMainFunction.cpp
+    HoistAlloc.cpp
+    HoistDealloc.cpp
     InstrumentMalloc.cpp
-    ReorderFrees.cpp
+    Pipeline.cpp
     StaticAllocation.cpp
 
     LINK_LIBS PUBLIC

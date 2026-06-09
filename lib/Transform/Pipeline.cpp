@@ -1,7 +1,8 @@
 #include "Pipeline.h"
-#include "AddNasbenchMainFunction.h"
+#include "AddRarogMainFunction.h"
+#include "HoistAlloc.h"
+#include "HoistDealloc.h"
 #include "InstrumentMalloc.h"
-#include "ReorderFrees.h"
 #include "StaticAllocation.h"
 
 #include "mlir/Conversion/ArithToLLVM/ArithToLLVM.h"
@@ -22,11 +23,15 @@
 
 using namespace mlir;
 
-struct NasbenchLoweringPipelineOptions
-    : public PassPipelineOptions<NasbenchLoweringPipelineOptions> {
+struct RarogBufferizationPipelineOptions
+    : public PassPipelineOptions<RarogBufferizationPipelineOptions> {
   Option<bool> enableReorderFrees{*this, "enable-reorder-frees",
                                   llvm::cl::desc("Enable reorder-frees pass"),
                                   llvm::cl::init(false)};
+
+  Option<bool> enableReorderMallocs{
+      *this, "enable-reorder-mallocs",
+      llvm::cl::desc("Enable reorder-mallocs pass"), llvm::cl::init(false)};
 };
 
 struct StaticAllocationPipelineOptions
@@ -44,9 +49,9 @@ struct StaticAllocationPipelineOptions
 
 namespace {
 
-void addNasbenchLoweringPipeline(
-    OpPassManager &pm, const NasbenchLoweringPipelineOptions &options) {
-  pm.addPass(rarog::createAddNasbenchMainFunctionPass());
+void addRarogBufferizationPipeline(
+    OpPassManager &pm, const RarogBufferizationPipelineOptions &options) {
+  pm.addPass(rarog::createAddRarogMainFunctionPass());
 
   // --one-shot-bufferize="bufferize-function-boundaries"
   bufferization::OneShotBufferizePassOptions bufferizationOptions;
@@ -61,14 +66,28 @@ void addNasbenchLoweringPipeline(
   // funcPM.addPass(mlir::bufferization::createOptimizeAllocationLivenessPass());
   // funcPM.addPass(mlir::createConvertBufferizationToMemRefPass());
 
-  if (options.enableReorderFrees) {
-    // Hoist memref.realloc instructions close to last use of deallocated buffer
-    pm.addPass(rarog::createReorderFreesPass());
+  if (options.enableReorderMallocs) {
+    // Hoist memref.alloc instructions close to first use of allocated buffer
+    pm.addPass(rarog::createHoistAllocPass());
 
     pm.addPass(createCanonicalizerPass());
 
     pm.addPass(createCSEPass());
   }
+
+  if (options.enableReorderFrees) {
+    // Hoist memref.realloc instructions close to last use of deallocated buffer
+    pm.addPass(rarog::createHoistDeallocPass());
+
+    pm.addPass(createCanonicalizerPass());
+
+    pm.addPass(createCSEPass());
+  }
+}
+
+void addRarogLoweringPipeline(
+    OpPassManager &pm, const RarogBufferizationPipelineOptions &options) {
+  addRarogBufferizationPipeline(pm, options);
 
   // --convert-linalg-to-loops
   pm.addPass(createConvertLinalgToLoopsPass());
@@ -113,35 +132,20 @@ void addStaticAllocationPipeline(
   pm.addPass(createCanonicalizerPass());
 }
 
-void addReorderFreesPipeline(OpPassManager &pm) {
-  // --one-shot-bufferize="bufferize-function-boundaries"
-  bufferization::OneShotBufferizePassOptions bufferizationOptions;
-  bufferizationOptions.bufferizeFunctionBoundaries = true;
-  pm.addPass(bufferization::createOneShotBufferizePass(bufferizationOptions));
-
-  // --buffer-deallocation-pipeline
-  // funcPM.addPass(bufferization::createBufferLoopHoistingPass());
-  bufferization::BufferDeallocationPipelineOptions bufferDeallocOptions;
-  mlir::bufferization::buildBufferDeallocationPipeline(pm,
-                                                       bufferDeallocOptions);
-
-  // Hoist memref.realloc instructions close to last use of deallocated buffer
-  pm.addPass(rarog::createReorderFreesPass());
-
-  pm.addPass(createCanonicalizerPass());
-
-  pm.addPass(createCSEPass());
-}
-
 } // namespace
 
 namespace rarog {
 
-void registerNasbenchLoweringPipeline() {
-  PassPipelineRegistration<NasbenchLoweringPipelineOptions>(
-      "nasbench-lowering-pipeline",
-      "Insert main function and lower nasbench model to llvm",
-      addNasbenchLoweringPipeline);
+void registerRarogBufferizationPipeline() {
+  PassPipelineRegistration<RarogBufferizationPipelineOptions>(
+      "rarog-bufferization-pipeline",
+      "Insert main function and bufferize model", addRarogLoweringPipeline);
+}
+
+void registerRarogLoweringPipeline() {
+  PassPipelineRegistration<RarogBufferizationPipelineOptions>(
+      "rarog-lowering-pipeline", "Lower model to llvm",
+      addRarogLoweringPipeline);
 }
 
 void registerInstrumentMallocPipeline() {
@@ -149,13 +153,6 @@ void registerInstrumentMallocPipeline() {
       "instrument-malloc",
       "Change calls to malloc into calls to instrument_malloc",
       addInstrumentMallocPipeline);
-}
-
-void registerReorderFreesPipeline() {
-  PassPipelineRegistration<>("reorder-frees",
-                             "Hoist memref.realloc instructions close to last "
-                             "use of deallocated buffer",
-                             addReorderFreesPipeline);
 }
 
 void registerStaticAllocationPipeline() {

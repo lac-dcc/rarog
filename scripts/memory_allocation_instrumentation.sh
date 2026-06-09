@@ -101,7 +101,7 @@ process_model() {
         "$MLIR_MODEL" -o "$LINALG_MODEL"
 
     "$RAROG_OPT_PATH" \
-        --nasbench-lowering-pipeline \
+        --rarog-lowering-pipeline \
         --instrument-malloc \
         "$LINALG_MODEL" -o "$INSTRUMENTED_MODEL"
 

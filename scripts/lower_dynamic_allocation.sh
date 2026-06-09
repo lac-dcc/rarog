@@ -14,7 +14,7 @@ then
     bash ${RAROG_ROOT}/scripts/create_linalg.sh
 fi
 
-$RAROG_OPT_PATH \
+# Apply lowering pipeline
+/usr/bin/time --format="time elapsed: %e\n" -o "$DYNAMIC_LOWERING_LOG" $RAROG_OPT_PATH \
     --rarog-lowering-pipeline="$ALLOCATION_HOISTING $DEALLOCATION_HOISTING" \
-    --instrument-malloc \
-    $LINALG_MODEL -o $INSTRUMENTED_MODEL
+    $LINALG_MODEL -o $DYNAMIC_MODEL
