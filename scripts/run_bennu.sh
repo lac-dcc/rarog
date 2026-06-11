@@ -38,14 +38,14 @@ echo "${#LINALGS[@]} models were successful:"
 # LINALG to ILP
 for model_name in "${LINALGS[@]}"; do
     echo "* Instantiate ILP $model_name"
-    MODEL_NAME=$model_name ./scripts/instantiate.sh
+    MODEL_NAME=$model_name ./scripts/instantiator.sh
 done
 
 # Run GUROBI
 for model_name in "${LINALGS[@]}"; do
     echo "* Invoke GUROBI on $model_name"
-    ILP_IN="${RAROG_ROOT}/tmp/${model_name}.in"
-    ILP_OUT="${RAROG_ROOT}/tmp/${model_name}_ilp.out"
+    ILP_IN="${RAROG_ROOT}/memory_allocation_input/${model_name}.in"
+    ILP_OUT="${RAROG_ROOT}/memory_allocation_output/${model_name}_ilp.out"
 
     # Already calculated
     if [ -f $ILP_OUT ]; then continue; fi
