@@ -54,6 +54,18 @@ for model_name in "${LINALGS[@]}"; do
     echo "* Done with $ILP_OUT"
 done
 
-# TODO: Run experiment
+# Run experiment
+for model_name in "${LINALGS[@]}"; do
+    echo "* Lower Static Allocation on $model_name"
+    ILP_FILE="${RAROG_ROOT}/memory_allocation_output/${model_name}_ilp.out"
+    STATIC_ALLOCATION_MODEL="${RAROG_ROOT}/tmp/${model_name}_static_allocation.mlir"
 
+    # Already lowered
+    if [ -f $STATIC_ALLOCATION_MODEL ]; then continue; fi
+
+    MODEL_NAME="${model_name}" ILP_FILE="${ILP_FILE}" \
+        ./scripts/lower_static_allocation.sh
+
+    echo "* Lowered with $STATIC_ALLOCATION_MODEL"
+done
 
