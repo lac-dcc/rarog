@@ -9,14 +9,13 @@ then
     exit $RETURN_CODE
 fi
 
-if ! [ -f $INSTRUMENTED_MODEL ] || $FRESH
+if ! [ -f $DYNAMIC_MODEL ] || $FRESH
 then
-    bash "${RAROG_ROOT}/scripts/lower_instrumented.sh" $@
+    bash "${RAROG_ROOT}/scripts/lower_dynamic_allocation.sh" $@
 fi
 
 /usr/bin/time --format="\ntime elapsed: %es\nmax memory used: %Mkb\nCPU used: %P" \
-    $MLIR_RUNNER $INSTRUMENTED_MODEL \
+    $MLIR_RUNNER $DYNAMIC_MODEL \
     --entry-point-result=void \
-    --shared-libs=$INSTRUMENTED_MALLOC \
     --shared-libs=$MLIR_UTILS \
-    --shared-libs=$MLIR_C_UTILS > /dev/null 2> $INSTRUMENTED_OUTPUT
+    --shared-libs=$MLIR_C_UTILS

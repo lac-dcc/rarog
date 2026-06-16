@@ -17,3 +17,4 @@ __pycache__/
 
 # Exception as example
 !ilp_allocation_output/model_1.out
+results/

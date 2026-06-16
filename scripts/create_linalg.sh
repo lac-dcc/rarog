@@ -2,23 +2,10 @@
 
 RAROG_ROOT="$(cd "$(dirname ${BASH_SOURCE[0]})/.." && pwd)"
 
-if [ -f ${RAROG_ROOT}/.env ]
-then
-    source ${RAROG_ROOT}/.env
-fi
-
-PYTHON_VENV_PATH="${PYTHON_VENV_PATH:-$RAROG_ROOT/venv/bin/activate}"
-
+source ${RAROG_ROOT}/scripts/config.sh
 source $PYTHON_VENV_PATH
 
-MODEL_PATH="${MODEL_PATH:-$RAROG_ROOT/onnx_models}"
-MODEL_NAME="${MODEL_NAME:-model_1}"
-
-# mkdir -p tmp
-
-ONNX_MODEL="${MODEL_PATH}/${MODEL_NAME}.onnx"
-MLIR_MODEL="${RAROG_ROOT}/tmp/${MODEL_NAME}.mlir"
-LINALG_MODEL="${RAROG_ROOT}/tmp/${MODEL_NAME}_linalg.mlir"
+mkdir -p tmp
 
 # Convert ONNX model to MLIR (torch dialect)
 if ! [ -f $MLIR_MODEL ]; then

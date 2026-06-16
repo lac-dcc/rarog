@@ -3,9 +3,9 @@
 
 namespace rarog {
 
-void registerNasbenchLoweringPipeline();
+void registerRarogBufferizationPipeline();
+void registerRarogLoweringPipeline();
 void registerInstrumentMallocPipeline();
-void registerReorderFreesPipeline();
 void registerStaticAllocationPipeline();
 
 } // namespace rarog

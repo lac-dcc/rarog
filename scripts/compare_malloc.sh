@@ -2,69 +2,64 @@
 
 RAROG_ROOT="$(cd "$(dirname ${BASH_SOURCE[0]})/.." && pwd)"
 
-if [ -f ${RAROG_ROOT}/.env ]
+source "${RAROG_ROOT}/scripts/config_args.sh" $@
+RETURN_CODE=$?
+if [[ $RETURN_CODE != 0 ]]
 then
-    source ${RAROG_ROOT}/.env
+    exit $RETURN_CODE
 fi
 
-RAROG_OPT_PATH="${RAROG_ROOT}/build/bin/rarog-opt"
+echo -e "Processing dynamic allocation $(basename $MODEL_PATH)/$MODEL_NAME"
 
-MLIR_OPT=${MLIR_OPT:-mlir-opt}
-MLIR_RUNNER=${MLIR_RUNNER:-mlir-runner}
-INSTRUMENTED_MALLOC="${RAROG_ROOT}/utils/libinstrumented_malloc.so"
-RAROG_MALLOC="${RAROG_ROOT}/utils/librarog_malloc.so"
-MLIR_UTILS=${MLIR_UTILS:-/usr/lib/llvm/lib/libmlir_runner_utils.so}
-MLIR_C_UTILS=${MLIR_C_UTILS:-/usr/lib/llvm/lib/libmlir_c_runner_utils.so}
-
-
-# MODEL_PATH="${MODEL_PATH:-$RAROG_ROOT/onnx_models}"
-MODEL_NAME="${MODEL_NAME:-model_1}"
-
-if ! [ -f $RAROG_OPT_PATH ]
+if ! [ -f $DYNAMIC_BINARY ] || $FRESH
 then
-    # echo "rarog-opt is not compiled. Starting compilation process..."
-    cd $RAROG_ROOT
-    cmake -B build . --fresh
-    cmake --build build
-    if [[ $? != 0 ]]
-    then
-        echo "Compilation failed! Terminating..."
-        exit 1
-    fi
-    cd -
+    echo "Compiling dynamic binary"
+    bash "${RAROG_ROOT}/scripts/compile_dynamic_allocation.sh" $@
+    echo "Compilation finished"
 fi
 
-LINALG_MODEL="${RAROG_ROOT}/tmp/${MODEL_NAME}_linalg.mlir"
-LOWERED_MODEL="${RAROG_ROOT}/tmp/${MODEL_NAME}_lowered.mlir"
-STATIC_ALLOCATION_MODEL="${RAROG_ROOT}/tmp/${MODEL_NAME}_static_allocation.mlir"
+DYNAMIC_OUTPUT_TAILED="${DYNAMIC_OUTPUT}.tailed"
 
-if ! [ -f $LOWERED_MODEL ]
+# Running dynamic model
+echo "Running dynamic model"
+/usr/bin/time --format="time elapsed: %e\nmax memory used: %M\n" \
+    -o "$DYNAMIC_EXECUTION_LOG" $DYNAMIC_BINARY > $DYNAMIC_OUTPUT 2> $DYNAMIC_LOG
+
+tail -n1 $DYNAMIC_OUTPUT > $DYNAMIC_OUTPUT_TAILED
+
+echo -e "Finished processing dynamic allocation\e[0m\n\n"
+
+
+
+echo -e "Processing static allocation for model $(basename $MODEL_PATH)/$MODEL_NAME"
+
+if ! [ -f $STATIC_BINARY ] || $FRESH
 then
-    bash "${RAROG_ROOT}/scripts/lower.sh" &> /dev/null
+    echo "Compiling static binary"
+    bash "${RAROG_ROOT}/scripts/compile_static_allocation.sh" $@
+    echo "Compilation finished"
 fi
 
-if ! [ -f $STATIC_ALLOCATION_MODEL ]
+STATIC_OUTPUT_TAILED="${STATIC_OUTPUT}.tailed"
+
+# Running static model
+echo "Running dynamic model"
+/usr/bin/time --format="time elapsed: %e\nmax memory used: %M\n" \
+    -o "$STATIC_EXECUTION_LOG" $STATIC_BINARY > $STATIC_OUTPUT 2> $STATIC_LOG
+
+tail -n1 $STATIC_OUTPUT > $STATIC_OUTPUT_TAILED
+
+echo -e "Finished processing dynamic allocation\e[0m\n"
+
+# Comparing outputs
+diff $DYNAMIC_OUTPUT_TAILED $STATIC_OUTPUT_TAILED
+if [[ $? = 0 ]]
 then
-    bash "${RAROG_ROOT}/scripts/lower_static_allocation.sh" &> /dev/null
+    rm $DYNAMIC_OUTPUT
+    rm $DYNAMIC_OUTPUT_TAILED
+    rm $STATIC_OUTPUT
+    rm $STATIC_OUTPUT_TAILED
+else
+    echo -e "\e[0;31mERROR:\e[0m Static output differs from dynamic output"
+    exit 1
 fi
-
-# TODO: Compare with the ILP allocation
-/usr/bin/time --format="\ntime elapsed: %es\nmax memory used: %Mkb\nCPU used: %P" $MLIR_RUNNER \
-    $LOWERED_MODEL \
-    --entry-point-result=void \
-    --shared-libs=$INSTRUMENTED_MALLOC \
-    --shared-libs=$MLIR_UTILS \
-    --shared-libs=$MLIR_C_UTILS > ${RAROG_ROOT}/tmp/${MODEL_NAME}_output_lowered.txt 2> ${RAROG_ROOT}/tmp/${MODEL_NAME}_lowered.out
-
-/usr/bin/time --format="\ntime elapsed: %es\nmax memory used: %Mkb\nCPU used: %P" $MLIR_RUNNER \
-    $STATIC_ALLOCATION_MODEL \
-    --entry-point-result=void \
-    --shared-libs=$INSTRUMENTED_MALLOC \
-    --shared-libs=$RAROG_MALLOC \
-    --shared-libs=$MLIR_UTILS \
-    --shared-libs=$MLIR_C_UTILS > ${RAROG_ROOT}/tmp/${MODEL_NAME}_output_static_allocation.txt 2> ${RAROG_ROOT}/tmp/${MODEL_NAME}_static_allocation.out
-
-tail -n1 ${RAROG_ROOT}/tmp/${MODEL_NAME}_output_lowered.txt > ${RAROG_ROOT}/tmp/${MODEL_NAME}_output_lowered_tailed.txt
-tail -n1 ${RAROG_ROOT}/tmp/${MODEL_NAME}_output_static_allocation.txt > ${RAROG_ROOT}/tmp/${MODEL_NAME}_output_static_allocation_tailed.txt
-
-diff ${RAROG_ROOT}/tmp/${MODEL_NAME}_output_lowered_tailed.txt ${RAROG_ROOT}/tmp/${MODEL_NAME}_output_static_allocation_tailed.txt
