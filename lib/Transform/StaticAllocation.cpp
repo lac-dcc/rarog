@@ -1,5 +1,7 @@
 #include "FirstFitAllocation.h"
+#include "ILPAllocation.h"
 #include "NaiveAllocation.h"
+
 #include "mlir/Dialect/LLVMIR/LLVMDialect.h"
 #include "mlir/IR/Block.h"
 #include "mlir/IR/BuiltinOps.h"
@@ -23,9 +25,9 @@ struct StaticAllocationPass
 
 public:
   StaticAllocationPass(std::string resultFilename,
-                       std::string allocationHeuristic)
+                       std::string allocationHeuristic, std::string ilpFilename)
       : ResultFilename(resultFilename),
-        AllocationHeuristic(allocationHeuristic) {}
+        AllocationHeuristic(allocationHeuristic), IlpFilename(ilpFilename) {}
 
   void runOnOperation() override {
     if (!llvm::sys::fs::exists(ResultFilename)) {
@@ -219,6 +221,7 @@ public:
 private:
   std::string ResultFilename;
   std::string AllocationHeuristic;
+  std::string IlpFilename;
   llvm::SmallVector<size_t> bufferSizes;
 
   // Input: vector of triples containing, for each buffer: alloc position, free
@@ -228,7 +231,9 @@ private:
       llvm::SmallVector<std::tuple<size_t, size_t, size_t>> buffers) {
     if (AllocationHeuristic == "no-free") {
       return naive_allocation(buffers);
-    } else {
+    } else if (AllocationHeuristic == "ilp") {
+      return ilp_allocation(buffers, IlpFilename);
+    } else { // first-fit
       return first_fit_allocation(buffers);
     }
   }
@@ -294,9 +299,14 @@ private:
 
 std::unique_ptr<mlir::Pass>
 createStaticAllocationPass(std::string resultFilename,
-                           std::string allocationHeuristic) {
+                           std::string allocationHeuristic,
+                           std::string ilpFilename
+
+) {
   return std::make_unique<StaticAllocationPass>(resultFilename,
-                                                allocationHeuristic);
+                                                allocationHeuristic, ilpFilename
+
+  );
 }
 
 } // namespace rarog

@@ -32,6 +32,9 @@ STATIC_MALLOC="${RAROG_LIBS}/libstatic_malloc.so"
 MODEL_PATH="${MODEL_PATH:-$RAROG_ROOT/onnx_models}"
 MODEL_NAME="${MODEL_NAME:-model_1}"
 
+# ILP file
+ILP_FILE="${RAROG_ROOT}/memory_allocation_output/${MODEL_NAME}_ilp.out"
+
 # Model intermediate files
 ONNX_MODEL="${MODEL_PATH}/${MODEL_NAME}.onnx"
 MLIR_MODEL="${RAROG_ROOT}/tmp/${MODEL_NAME}.mlir"
@@ -65,7 +68,7 @@ STATIC_EXECUTION_LOG="${RAROG_ROOT}/tmp/${MODEL_NAME}_static_execution.log"
 STATIC_LOG="${RAROG_ROOT}/tmp/${MODEL_NAME}_static.log"
 
 # Model outputs
-INSTRUMENTED_OUTPUT="${RAROG_ROOT}/tmp/${MODEL_NAME}_instrumented.out"
+INSTRUMENTED_OUTPUT="${RAROG_ROOT}/tmp/${MODEL_NAME}_instrumented.txt"
 
 DYNAMIC_OUTPUT="${RAROG_ROOT}/tmp/${MODEL_NAME}_output_dynamic.txt"
 

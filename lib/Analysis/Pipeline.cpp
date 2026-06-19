@@ -20,6 +20,14 @@
 
 using namespace mlir;
 
+struct MemoryAllocationInstantiationPipelineOptions
+    : public PassPipelineOptions<MemoryAllocationInstantiationPipelineOptions> {
+  Option<std::string> resultFilename{
+      *this, "result-file",
+      llvm::cl::desc("<Malloc instrumentation result file>"),
+      llvm::cl::Required};
+};
+
 struct ShufflingNumberPipelineOptions
     : public PassPipelineOptions<ShufflingNumberPipelineOptions> {
   Option<bool> verbose{*this, "verbose",
@@ -29,15 +37,12 @@ struct ShufflingNumberPipelineOptions
 
 namespace {
 
-void addMemoryAllocationInstantiationPipeline(OpPassManager &pm) {
-
-  // --one-shot-bufferize="bufferize-function-boundaries"
-  bufferization::OneShotBufferizePassOptions bufferizationOptions;
-  bufferizationOptions.bufferizeFunctionBoundaries = true;
-  pm.addPass(bufferization::createOneShotBufferizePass(bufferizationOptions));
-
+void addMemoryAllocationInstantiationPipeline(
+    OpPassManager &pm,
+    const MemoryAllocationInstantiationPipelineOptions &options) {
   // --memory-AllocationInstantiation
-  pm.addPass(rarog::createMemoryAllocationInstantiationPass());
+  pm.addPass(
+      rarog::createMemoryAllocationInstantiationPass(options.resultFilename));
 }
 
 void addShufflingNumberPipeline(OpPassManager &pm,
@@ -51,9 +56,10 @@ void addShufflingNumberPipeline(OpPassManager &pm,
 namespace rarog {
 
 void registerMemoryAllocationInstantiationPipeline() {
-  PassPipelineRegistration<>("memory-allocation-instantiation",
-                             "Instantiate memory allocation problem",
-                             addMemoryAllocationInstantiationPipeline);
+  PassPipelineRegistration<MemoryAllocationInstantiationPipelineOptions>(
+      "memory-allocation-instantiation",
+      "Instantiate memory allocation problem",
+      addMemoryAllocationInstantiationPipeline);
 }
 
 void registerShufflingNumberPipeline() {

@@ -5,7 +5,8 @@
 
 namespace rarog {
 
-std::unique_ptr<mlir::Pass> createMemoryAllocationInstantiationPass();
+std::unique_ptr<mlir::Pass>
+createMemoryAllocationInstantiationPass(std::string resultFilename);
 
 } // namespace rarog
 
