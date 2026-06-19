@@ -7,8 +7,8 @@ csv_result_path = os.environ.get('CSV_RESULT_PATH', '.')
 
 csv_data = []
 
-models = ['alexnet', 'googlenet', 'inception_v3', 'mnasnet1_0', 'mobilenet_v2', 'resnet18', 'resnet34', 'resnet50', 'resnet101', 'resnet152', 'shufflenet', 'squeezenet']
-# models = ['shufflenet', 'squeezenet']
+# models = ['alexnet', 'googlenet', 'inception_v3', 'mnasnet1_0', 'mobilenet_v2', 'resnet18', 'resnet34', 'resnet50', 'resnet101', 'resnet152', 'shufflenet', 'squeezenet']
+models = ['alexnet', 'mnasnet1_0', 'mobilenet_v2', 'resnet18', 'resnet34', 'resnet50', 'shufflenet', 'squeezenet']
 metrics = ['mlir_lowering_time', 'total_compilation_time', 'execution_time', 'total_memory', 'buffer_memory']
 methods = ['dynamic', 'static']
 
@@ -22,6 +22,7 @@ metrics_naming = {
 
 row_idx = 0
 for model_name in models:
+    print(model_name)
     model_data = json.load(open(json_results_path+'/'+model_name+'.json','r'))
 
     csv_data.append([model_name, 'Dynamic', 'Static', 'Dynamic - Static', 'Static/Dynamic (%)'])
