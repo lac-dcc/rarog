@@ -5,18 +5,18 @@ tmp_results_path = os.environ.get('TMP_RESULTS_PATH', 'tmp')
 json_results_path = os.environ.get('JSON_RESULTS_PATH', '.')
 model_name = os.environ.get('MODEL_NAME', 'model_1')
 
-d_model = tmp_results_path+'/'+model_name+'_lowered'
-s_model = tmp_results_path+'/'+model_name+'_static_allocation'
+d_model = tmp_results_path+'/'+model_name+'_dynamic'
+s_model = tmp_results_path+'/'+model_name+'_static'
 
-d_mlir_log = d_model+'.mlir.log'
-d_compile_logs = [d_model+'.ll.log', d_model+'.log']
-d_execution_log = d_model+'.exe.log'
-d_memory_log = tmp_results_path+'/'+model_name+'.out'
+d_lowering_log = d_model+'_lowering.log'
+d_compile_logs = [d_model+'_translation.log', d_model+'_compilation.log']
+d_execution_log = d_model+'_execution.log'
+d_memory_log = tmp_results_path+'/'+model_name+'_instrumented.txt'
 
-s_mlir_log = s_model+'.mlir.log'
-s_compile_logs = [s_model+'.ll.log', s_model+'.log']
-s_execution_log = s_model+'.exe.log'
-s_memory_log = s_model+'.out'
+s_lowering_log = s_model+'_lowering.log'
+s_compile_logs = [s_model+'_translation.log', s_model+'_compilation.log']
+s_execution_log = s_model+'_execution.log'
+s_memory_log = s_model+'.log'
 
 
 
@@ -25,7 +25,7 @@ dt = {'dynamic' : {}, 'static': {}}
 
 ### Dynamic statistics
 
-with open(d_mlir_log,'r') as f:
+with open(d_lowering_log,'r') as f:
     a = f.readlines()
     t = float(a[0].split()[-1])
     dt['dynamic']['mlir_lowering_time'] = t
@@ -70,7 +70,7 @@ with open(d_memory_log, 'r') as f:
 
 ### Static statistics
 
-with open(s_mlir_log,'r') as f:
+with open(s_lowering_log,'r') as f:
     a = f.readlines()
     t = float(a[0].split()[-1])
     dt['static']['mlir_lowering_time'] = t

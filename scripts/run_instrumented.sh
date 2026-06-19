@@ -14,8 +14,7 @@ then
     bash "${RAROG_ROOT}/scripts/lower_instrumented.sh" $@
 fi
 
-/usr/bin/time --format="\ntime elapsed: %es\nmax memory used: %Mkb\nCPU used: %P" \
-    $MLIR_RUNNER $INSTRUMENTED_MODEL \
+$MLIR_RUNNER $INSTRUMENTED_MODEL \
     --entry-point-result=void \
     --shared-libs=$INSTRUMENTED_MALLOC \
     --shared-libs=$MLIR_UTILS \

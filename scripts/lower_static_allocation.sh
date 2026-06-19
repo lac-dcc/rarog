@@ -25,5 +25,5 @@ fi
 
 /usr/bin/time --format="time elapsed: %e\n" -o "$STATIC_LOWERING_LOG" $RAROG_OPT_PATH \
     --rarog-lowering-pipeline="$ALLOCATION_HOISTING $DEALLOCATION_HOISTING" \
-    --static-allocation="result-file=${INSTRUMENTED_OUTPUT} allocation-heuristic=${ALLOCATION_HEURISTIC}" \
-    $LINALG_MODEL -o $STATIC_MODEL > /dev/null
+    --static-allocation="result-file=${INSTRUMENTED_OUTPUT} allocation-heuristic=${ALLOCATION_HEURISTIC} ilp-file=${ILP_FILE}" \
+    $LINALG_MODEL -o $STATIC_MODEL #> /dev/null
