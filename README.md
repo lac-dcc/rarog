@@ -65,9 +65,10 @@ The generation of instances and outputs for memory allocation is managed with th
 - tqdm
 - tf2onnx
 - onnx
+- gurobipy 
 
 ```
-pip install tensorflow tqdm tf2onnx onnx
+pip install tensorflow tqdm tf2onnx onnx gurobipy
 ```
 
 ### Generating the models

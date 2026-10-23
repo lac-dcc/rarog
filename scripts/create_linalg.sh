@@ -8,10 +8,14 @@ source $PYTHON_VENV_PATH
 mkdir -p tmp
 
 # Convert ONNX model to MLIR (torch dialect)
-torch-mlir-import-onnx $ONNX_MODEL -o $MLIR_MODEL
+if ! [ -f $MLIR_MODEL ]; then
+    torch-mlir-import-onnx $ONNX_MODEL -o $MLIR_MODEL
+fi
 
 # Lower from torch to linalg dialect
-torch-mlir-opt \
-    --torch-onnx-to-torch-backend-pipeline \
-    --torch-backend-to-linalg-on-tensors-backend-pipeline \
-    $MLIR_MODEL -o $LINALG_MODEL
+if ! [ -f $LINALG_MODEL ]; then
+    torch-mlir-opt \
+        --torch-onnx-to-torch-backend-pipeline \
+        --torch-backend-to-linalg-on-tensors-backend-pipeline \
+        $MLIR_MODEL -o $LINALG_MODEL
+fi
