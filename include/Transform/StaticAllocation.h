@@ -7,7 +7,8 @@ namespace rarog {
 
 std::unique_ptr<mlir::Pass>
 createStaticAllocationPass(std::string resultFilename,
-                           std::string allocationHeuristic);
+                           std::string allocationHeuristic,
+                           std::string ilpFilename);
 
 } // namespace rarog
 

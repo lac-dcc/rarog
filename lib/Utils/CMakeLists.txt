@@ -1,6 +1,7 @@
 add_mlir_library(RarogUtils
     NaiveAllocation.cpp
     FirstFitAllocation.cpp
+    ILPAllocation.cpp
 
     LINK_LIBS PUBLIC
       MLIRIR
