@@ -83,3 +83,21 @@ To have `clang-format` run on each commit, copy the bash script to the correct f
 mkdir -p .git/hooks
 cp .githooks/pre-commit .git/hooks/pre-commit
 ```
+
+### Building
+It's possible to use a compiled LLVM project, but the packages on apt repository
+will also work (on Ubuntu for example)
+```bash
+# Download and run the LLVM installation script (clang-22 not in Ubuntu repos)
+wget https://apt.llvm.org/llvm.sh
+chmod +x llvm.sh
+sudo ./llvm.sh 22
+
+# Install MLIR development packages for version 22
+sudo apt install libmlir-22-dev mlir-22-tools
+
+# Point CMake to Clang 22
+cmake -B build -DCMAKE_C_COMPILER=/usr/lib/llvm-22/bin/clang \
+               -DCMAKE_CXX_COMPILER=/usr/lib/llvm-22/bin/clang++ \
+               -DMLIR_DIR=/usr/lib/llvm-22/lib/cmake/mlir
+```
