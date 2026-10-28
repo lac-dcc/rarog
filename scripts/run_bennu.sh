@@ -18,9 +18,21 @@ export MODEL_PATH="${MODEL_PATH:-$HOME/repos/bennu/models}"
 
 # ONNX to LINALG
 declare -a LINALGS
-for model in $(ls -1 $MODEL_PATH/*.onnx); do
-    model_name=$(basename ${model%.onnx})
+
+# ? Some networks didn't lower to linalg...
+#for model in $(ls -1 $MODEL_PATH/*.onnx); do
+    # model_name=$(basename ${model%.onnx})
     # echo "* Create linalg $model_name"
+
+MODELS=(alexnet
+    # densenet121 densenet161 densenet169 densenet201
+    googlenet inception_v3 mnasnet1_0 mobilenet_v2
+    resnet101 resnet152 resnet18 resnet34
+    resnet50 shufflenet squeezenet vgg11
+    # vgg13
+    vgg16 vgg19)
+
+for model_name in "${MODELS[@]}"; do
 
     # Run the script
     MODEL_NAME=$model_name ./scripts/create_linalg.sh
@@ -41,6 +53,8 @@ for model_name in "${LINALGS[@]}"; do
     MODEL_NAME=$model_name ./scripts/instantiator.sh
 done
 
+source venv/bin/activate
+
 # Run GUROBI
 for model_name in "${LINALGS[@]}"; do
     echo "* Invoke GUROBI on $model_name"
@@ -50,7 +64,7 @@ for model_name in "${LINALGS[@]}"; do
     # Already calculated
     if [ -f $ILP_OUT ]; then continue; fi
 
-    python3 ilp/main.py $ILP_IN $ILP_OUT
+    python3 ilp/gurobi.py $ILP_IN $ILP_OUT
     echo "* Done with $ILP_OUT"
 done
 

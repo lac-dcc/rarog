@@ -24,9 +24,9 @@ fi
     -Wl,-rpath,$RAROG_LIBS \
     -L $MLIR_LIBS \
     -L $RAROG_LIBS \
-    -lmlir_runner_utils \
-    -lmlir_c_runner_utils \
-    -linstrumented_malloc \
-    -lstatic_malloc \
+    -l mlir_runner_utils \
+    -l mlir_c_runner_utils \
+    -l instrumented_malloc \
+    -l static_malloc \
     -lm -o2 \
     $STATIC_LL_FILE -o $STATIC_BINARY
