@@ -40,10 +40,11 @@ public:
       }
     }
 
-    parseResultFile();
-
-    // Function name
-    llvm::outs() << "Function: " << targetFunc.getName() << "\n";
+    if (llvm::Error err = parseResultFile()) {
+      llvm::errs() << llvm::toString(std::move(err)) << "\n";
+      signalPassFailure();
+      return;
+    }
 
     llvm::DenseMap<Operation *, int64_t> instructionMapping;
     int64_t idx = 0;
@@ -73,20 +74,28 @@ public:
       }
     });
 
+    // Collect start (malloc) and end (free) instruction indices per buffer.
+    llvm::SmallVector<int64_t> bufferStart(idx, -1);
+    llvm::SmallVector<int64_t> bufferEnd(idx, -1);
+
     for (size_t i = 0; i < numInst; i++) {
-      if (opBufferMapping.contains(i)) {
-        llvm::outs() << i << "\n";
-        llvm::sort(opBufferMapping.at(i).begin(), opBufferMapping.at(i).end());
-        for (auto [op, id] : opBufferMapping.at(i)) {
-          if (op == 0) {
-            llvm::outs() << "+ B" << id << " " << bufferSizes[id] << "\n";
-          } else if (op == 1) {
-            llvm::outs() << "* B" << id << "\n";
-          } else {
-            llvm::outs() << "- B" << id << "\n";
-          }
+      if (not opBufferMapping.contains(i))
+        continue;
+
+      llvm::sort(opBufferMapping.at(i).begin(), opBufferMapping.at(i).end());
+      for (auto [op, id] : opBufferMapping.at(i)) {
+        if (op == 0) {
+          bufferStart[id] = static_cast<int64_t>(i);
+        } else if (op == 2) {
+          bufferEnd[id] = static_cast<int64_t>(i);
         }
       }
+    }
+
+    for (size_t id = 0; id < idx; id++) {
+      assert(bufferSizes.size() > id);
+      llvm::outs() << "B" << id << " " << bufferStart[id] << " "
+                   << bufferEnd[id] << " " << bufferSizes[id] << "\n";
     }
   }
 
@@ -94,21 +103,74 @@ private:
   std::string ResultFilename;
   llvm::SmallVector<size_t> bufferSizes;
 
-  void parseResultFile() {
+  llvm::Error parseResultFile() {
+    // TODO: Unit tests to cover this parsing better
     std::ifstream resultFile(ResultFilename);
+    if (!resultFile)
+      return llvm::createStringError(
+          llvm::inconvertibleErrorCode(),
+          "parseResultFile: could not open result file '" + ResultFilename +
+              "'");
+
+    // Results should have the expected format on every line, otherwise we
+    // need to report an error.
 
     std::string op;
+    unsigned lineNo = 0;
     while (resultFile >> op) {
+      ++lineNo;
+
       if (op == "malloc") {
+        // Expected:  malloc <ptr> <size>
         std::string ptr;
-        size_t size;
-        resultFile >> ptr >> size;
+        size_t size = 0;
+
+        if (!(resultFile >> ptr)) {
+          return llvm::createStringError(
+              llvm::inconvertibleErrorCode(),
+              "parseResultFile: line " + std::to_string(lineNo) +
+                  ": expected '<ptr>' after 'malloc', but input ended");
+        }
+        if (!(resultFile >> size)) {
+          return llvm::createStringError(
+              llvm::inconvertibleErrorCode(),
+              "parseResultFile: line " + std::to_string(lineNo) +
+                  ": expected '<size>' after 'malloc " + ptr +
+                  "', but input ended or size is not a number");
+        }
+
+        // TODO: Get a richer relation of buffer ids and their size, order
+        // could be an issue.
         bufferSizes.emplace_back(size);
-      } else {
+      } else if (op == "free") {
+        // Expected:  free <ptr>
         std::string ptr;
-        resultFile >> ptr;
+
+        if (!(resultFile >> ptr)) {
+          return llvm::createStringError(
+              llvm::inconvertibleErrorCode(),
+              "parseResultFile: line " + std::to_string(lineNo) +
+                  ": expected '<ptr>' after 'free', but input ended");
+        }
+      } else {
+        return llvm::createStringError(
+            llvm::inconvertibleErrorCode(),
+            "parseResultFile: line " + std::to_string(lineNo) +
+                ": unexpected token '" + op +
+                "' (expected 'malloc' or 'free')" + " while reading '" +
+                ResultFilename + "'");
       }
     }
+
+    // Distinguish a genuine I/O failure from a clean EOF.
+    if (resultFile.bad()) {
+      return llvm::createStringError(
+          llvm::inconvertibleErrorCode(),
+          "parseResultFile: I/O error while reading '" + ResultFilename +
+              "' after line " + std::to_string(lineNo));
+    }
+
+    return llvm::Error::success();
   }
 
   bool isFreed(Value pointer, std::unordered_set<Operation *> &visited) {
