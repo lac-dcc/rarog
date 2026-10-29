@@ -14,8 +14,15 @@ then
     bash "${RAROG_ROOT}/scripts/lower_static_allocation.sh" $@
 fi
 
-/usr/bin/time --format="time elapsed: %e\nmax memory used: %M\n" -o "$STATIC_TRANSLATION_LOG" \
-    $MLIR_TRANSLATE --mlir-to-llvmir $STATIC_MODEL -o $STATIC_LL_FILE
+
+if ! [ -f $STATIC_LL_FILE ] || $FRESH
+then
+    /usr/bin/time --format="time elapsed: %e\nmax memory used: %M\n" -o "$STATIC_TRANSLATION_LOG" \
+        $MLIR_TRANSLATE --mlir-to-llvmir $STATIC_MODEL -o $STATIC_LL_FILE
+fi
+
+if ! [ -f $STATIC_BINARY ] || $FRESH
+then
 
 /usr/bin/time --format="time elapsed: %e\nmax memory used: %M\n" -o "$STATIC_COMPILATION_LOG" \
     $CLANG -fuse-ld=lld \
@@ -30,3 +37,5 @@ fi
     -l static_malloc \
     -lm -o2 \
     $STATIC_LL_FILE -o $STATIC_BINARY
+
+fi

@@ -33,6 +33,11 @@ MODELS=(alexnet
     vgg16 vgg19)
 
 for model_name in "${MODELS[@]}"; do
+    LINALG_MODEL="${RAROG_ROOT}/tmp/${model_name}_linalg.mlir"
+    if [ -f $LINALG_MODEL ]; then
+        LINALGS+=($model_name)
+        continue
+    fi
 
     # Run the script
     MODEL_NAME=$model_name ./scripts/create_linalg.sh
@@ -49,6 +54,9 @@ echo "${#LINALGS[@]} models were successful:"
 
 # LINALG to ILP
 for model_name in "${LINALGS[@]}"; do
+    OUTPUT_FILE="${RAROG_ROOT}/memory_allocation_input/${model_name}.in"
+    if [ -f $OUTPUT_FILE ]; then continue; fi
+
     echo "* Instantiate ILP $model_name"
     MODEL_NAME=$model_name ./scripts/instantiator.sh
 done
@@ -57,12 +65,13 @@ source venv/bin/activate
 
 # Run GUROBI
 for model_name in "${LINALGS[@]}"; do
-    echo "* Invoke GUROBI on $model_name"
     ILP_IN="${RAROG_ROOT}/memory_allocation_input/${model_name}.in"
     ILP_OUT="${RAROG_ROOT}/memory_allocation_output/${model_name}_ilp.out"
 
     # Already calculated
     if [ -f $ILP_OUT ]; then continue; fi
+
+    echo "* Invoke GUROBI on $model_name"
 
     python3 ilp/gurobi.py $ILP_IN $ILP_OUT
     echo "* Done with $ILP_OUT"
@@ -70,16 +79,28 @@ done
 
 # Run experiment
 for model_name in "${LINALGS[@]}"; do
-    echo "* Lower Static Allocation on $model_name"
     ILP_FILE="${RAROG_ROOT}/memory_allocation_output/${model_name}_ilp.out"
-    STATIC_ALLOCATION_MODEL="${RAROG_ROOT}/tmp/${model_name}_static_allocation.mlir"
+    STATIC_ALLOCATION_MODEL="${RAROG_ROOT}/tmp/${model_name}_static.mlir"
 
     # Already lowered
     if [ -f $STATIC_ALLOCATION_MODEL ]; then continue; fi
+
+    echo "* Lower Static Allocation on $model_name"
 
     MODEL_NAME="${model_name}" ILP_FILE="${ILP_FILE}" \
         ./scripts/lower_static_allocation.sh
 
     echo "* Lowered with $STATIC_ALLOCATION_MODEL"
 done
+
+# Compile the model to binary
+for model_name in "${LINALGS[@]}"; do
+    STATIC_BINARY="${RAROG_ROOT}/tmp/${model_name}_static"
+    if [ -f $STATIC_BINARY ]; then continue; fi
+
+    echo "* Compiling $model_name"
+    MODEL_NAME="${model_name}" \
+        ./scripts/compile_static_allocation.sh
+done
+
 
