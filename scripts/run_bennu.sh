@@ -22,7 +22,6 @@ declare -a LINALGS
 # ? Some networks didn't lower to linalg...
 #for model in $(ls -1 $MODEL_PATH/*.onnx); do
     # model_name=$(basename ${model%.onnx})
-    # echo "* Create linalg $model_name"
 
 MODELS=(alexnet
     # densenet121 densenet161 densenet169 densenet201
@@ -45,6 +44,7 @@ for model_name in "${MODELS[@]}"; do
 
     # Run the script
     MODEL_NAME=$model_name ./scripts/create_linalg.sh
+    echo "* Create linalg $model_name"
 
     # Success: add to list
     if [[ $? -eq 0 ]]; then
