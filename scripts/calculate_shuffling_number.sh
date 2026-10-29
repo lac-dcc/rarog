@@ -52,13 +52,13 @@ if [[ ! -f $RAROG_OPT_PATH || $FRESH == true ]]; then
     cd -
 fi
 
-print_blue "Calculating Shuffing Number for model_$MODEL_IDX"
+print_blue "Calculating Shuffling Number for model_$MODEL_IDX"
 
 mkdir -p tmp
 
 LINALG_MODEL="${RAROG_ROOT}/tmp/model_${MODEL_IDX}_linalg.mlir"
 
-# Analyize with our tool
+# Analyze with our tool
 $RAROG_OPT_PATH \
     --shuffling-number-pass="verbose=${VERBOSE}" \
     $LINALG_MODEL \

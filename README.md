@@ -14,11 +14,20 @@
 
 ### Running the models
 
-The script [iree.sh](scripts/iree.sh) is responsible to convert a model from ONNX to torch MLIR, and compile and run this converted model using the IREE compiler. The script assumes the IREE compiler is installed inside a Python environment located in a folder called `venv` in this repository. If this is not the case, you must:
-- If IREE is installed inside a Python environment, set the variable `PYTHON_VENV_PATH`
-- If IREE is built from source out of the `$PATH` environment variable, set the variables `IREE_IMPORT_ONNX`, `IREE_COMPILE` and `IREE_RUN_MODULE`
+The script [iree.sh](scripts/iree.sh) is responsible to convert a model from
+ONNX to torch MLIR, and compile and run this converted model using the IREE
+compiler. The script assumes the IREE compiler is installed inside a Python
+environment located in a folder called `venv` in this repository. If this is not
+the case, you must:
 
-The script runs the first model by default, but you can change it by setting variable `MODEL_IDX` to some value between the available models before running the script.
+- If IREE is installed inside a Python environment, set the variable
+  `PYTHON_VENV_PATH`
+- If IREE is built from source out of the `$PATH` environment variable, set the
+  variables `IREE_IMPORT_ONNX`, `IREE_COMPILE` and `IREE_RUN_MODULE`
+
+The script runs the first model by default, but you can change it by setting
+variable `MODEL_IDX` to some value between the available models before running
+the script.
 
 ---
 
@@ -33,11 +42,19 @@ The script runs the first model by default, but you can change it by setting var
 
 The running pipeline consists of 3 scripts:
 
-- [create_linalg.sh](scripts/create_linalg.sh): converts the ONNX model to torch MLIR, then lower it to linalg dialect.
-- [lower.sh](scripts/lower.sh): run the lowering pipeline for nasbench models, which consists in adding a main function and run passes to lower from linalg to llvm dialect.
+- [create_linalg.sh](scripts/create_linalg.sh): converts the ONNX model to torch
+  MLIR, then lower it to linalg dialect.
+- [lower.sh](scripts/lower.sh): run the lowering pipeline for nasbench models,
+  which consists in adding a main function and run passes to lower from linalg
+  to llvm dialect.
 - [run.sh](scripts/run.sh): execute the lowered model.
 
-The run script assumes the MLIR runner binary is in the `$PATH` environment variable. If this is not the case, define the variable `MLIR_RUNNER` to its respective path. Also, the script assumes that some MLIR libraries are within the `/usr/lib/llvm/lib` directory. Set the variables `MLIR_UTILS` and `MLIR_C_UTILS` to the path to the files `libmlir_runner_utils.so` and `libmlir_c_runner_utils.so`, respectively, if they are in a different path.
+The run script assumes the MLIR runner binary is in the `$PATH` environment
+variable. If this is not the case, define the variable `MLIR_RUNNER` to its
+respective path. Also, the script assumes that some MLIR libraries are within
+the `/usr/lib/llvm/lib` directory. Set the variables `MLIR_UTILS` and
+`MLIR_C_UTILS` to the path to the files `libmlir_runner_utils.so` and
+`libmlir_c_runner_utils.so`, respectively, if they are in a different path.
 
 ---
 
@@ -50,10 +67,16 @@ The run script assumes the MLIR runner binary is in the `$PATH` environment vari
 
 ### Generating instances and outputs
 
-The generation of instances and outputs for memory allocation is managed with the following scripts:
+The generation of instances and outputs for memory allocation is managed with
+the following scripts:
 
-- [memory_allocation_instantiatior.sh](scripts/memory_allocation_instantiator.sh): generate instances for the memory allocation problem based on the nasbench models.
-- [memory_allocation_instrumentation.sh](scripts/memory_allocation_instrumentation.sh): generate the output for the memory allocation problem by instrumenting malloc and free calls, in order to output the address and size of allocated buffers. There are also instrumented versions for the lower and run scripts.
+- [memory_allocation_instantiatior.sh](scripts/memory_allocation_instantiator.sh):
+  generate instances for the memory allocation problem based on the nasbench
+  models.
+- [memory_allocation_instrumentation.sh](scripts/memory_allocation_instrumentation.sh):
+  generate the output for the memory allocation problem by instrumenting malloc
+  and free calls, in order to output the address and size of allocated buffers.
+  There are also instrumented versions for the lower and run scripts.
 
 ---
 
@@ -65,21 +88,60 @@ The generation of instances and outputs for memory allocation is managed with th
 - tqdm
 - tf2onnx
 - onnx
-- gurobipy 
-
-```
-pip install tensorflow tqdm tf2onnx onnx gurobipy
-```
+- gurobipy
 
 ### Generating the models
 
-The Nasbench has over 423k benchmarks but, due to space constraints, only 100 were included in this repository. The script [NASBenchConvert.py](scripts/NASBenchConvert.py) can generate the remaining models, although it will take some time to run (ONNX files are already included on the .gitignore). However, it's necessary to extract the file [nasbench_full.json.tar.gz](nasbench_data/nasbench_full.json.tar.gz) first.
+The Nasbench has over 423k benchmarks but, due to space constraints, only 100
+were included in this repository. The script
+[NASBenchConvert.py](scripts/NASBenchConvert.py) can generate the remaining
+models, although it will take some time to run (ONNX files are already included
+on the .gitignore). However, it's necessary to extract the file
+[nasbench_full.json.tar.gz](nasbench_data/nasbench_full.json.tar.gz) first.
 
 ## Development
 
 ### Running clang-format on commit
-To have `clang-format` run on each commit, copy the bash script to the correct folder:
+
+To have `clang-format` run on each commit, copy the bash script to the correct
+folder:
+
 ```bash
 mkdir -p .git/hooks
 cp .githooks/pre-commit .git/hooks/pre-commit
+```
+
+### Building
+
+- Python Virtual Environment
+
+```bash
+python3.11 -m venv venv
+
+source venv/bin/activate
+
+pip install tensorflow tqdm tf2onnx onnx gurobipy
+
+pip install --pre torch-mlir torchvision \
+  --extra-index-url https://download.pytorch.org/whl/nightly/cpu -f \
+  https://github.com/llvm/torch-mlir-release/releases/expanded_assets/dev-wheels
+```
+
+- C++, LLVM, MLIR \
+It's possible compiler your own [MLIR](https://mlir.llvm.org/getting_started/),
+but the packages on apt repository will also work (on Ubuntu for example)
+
+```bash
+# Download and run the LLVM installation script (clang-22 not in Ubuntu repos)
+wget https://apt.llvm.org/llvm.sh
+chmod +x llvm.sh
+sudo ./llvm.sh 22
+
+# Install MLIR development packages for version 22
+sudo apt install libmlir-22-dev mlir-22-tools
+
+# Point CMake to Clang 22
+cmake -B build -DCMAKE_C_COMPILER=/usr/lib/llvm-22/bin/clang \
+               -DCMAKE_CXX_COMPILER=/usr/lib/llvm-22/bin/clang++ \
+               -DMLIR_DIR=/usr/lib/llvm-22/lib/cmake/mlir
 ```
