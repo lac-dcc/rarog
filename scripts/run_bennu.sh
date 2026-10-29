@@ -28,9 +28,9 @@ MODELS=(alexnet
     # densenet121 densenet161 densenet169 densenet201
     googlenet inception_v3 mnasnet1_0 mobilenet_v2
     resnet101 resnet152 resnet18 resnet34
-    resnet50 shufflenet squeezenet vgg11
-    # vgg13
-    vgg16 vgg19)
+    resnet50 shufflenet squeezenet
+    # vgg11 vgg13 vgg16 vgg19
+    )
 
 for model_name in "${MODELS[@]}"; do
     LINALG_MODEL="${RAROG_ROOT}/tmp/${model_name}_linalg.mlir"
@@ -38,6 +38,10 @@ for model_name in "${MODELS[@]}"; do
         LINALGS+=($model_name)
         continue
     fi
+
+    # Known issue with densenet*, vgg13
+    # error: failed to legalize operation 'torch.operator' that
+    # was explicitly marked illegal
 
     # Run the script
     MODEL_NAME=$model_name ./scripts/create_linalg.sh
@@ -98,9 +102,24 @@ for model_name in "${LINALGS[@]}"; do
     STATIC_BINARY="${RAROG_ROOT}/tmp/${model_name}_static"
     if [ -f $STATIC_BINARY ]; then continue; fi
 
+    # ! Known issue with vgg11, vgg16, vgg19
+    # fatal error: translation unit is too large for Clang to process:
+    # ran out of source locations
+
     echo "* Compiling $model_name"
     MODEL_NAME="${model_name}" \
         ./scripts/compile_static_allocation.sh
 done
 
+# Run each binary, store their logs
+shopt -s extglob nullglob
+cd tmp
+for program in !(*.*); do
+    LOG_FILE="${RAROG_ROOT}/tmp/${program}.log"
 
+    echo "* Run $program and store to $LOG_FILE"
+    time ./$program 2>&1 | tee -a $LOG_FILE
+done
+cd ..
+
+echo "Done!"
