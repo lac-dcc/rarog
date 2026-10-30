@@ -24,6 +24,8 @@ target_link_libraries(rarog-opt
   ${conversion_libs}
 )
 
+target_link_options(rarog-opt PRIVATE "-no-pie")
+
 target_include_directories(rarog-opt
     PUBLIC
     ${PROJECT_SOURCE_DIR}/include
