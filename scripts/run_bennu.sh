@@ -14,6 +14,7 @@ git lfs track "*.onnx"
 git lfs pull
 '
 RAROG_ROOT="$(cd "$(dirname ${BASH_SOURCE[0]})/.." && pwd)"
+CHECK_ALLOCATION_SCRIPT="${RAROG_ROOT}/scripts/check_memory_allocation.py"
 export MODEL_PATH="${MODEL_PATH:-$HOME/repos/bennu/models}"
 
 # ONNX to LINALG
@@ -72,13 +73,20 @@ for model_name in "${LINALGS[@]}"; do
     ILP_IN="${RAROG_ROOT}/memory_allocation_input/${model_name}.in"
     ILP_OUT="${RAROG_ROOT}/memory_allocation_output/${model_name}_ilp.out"
 
-    # Already calculated
-    if [ -f $ILP_OUT ]; then continue; fi
+    if [ ! -f "$ILP_OUT" ]; then
+        echo "* Invoke GUROBI on $model_name"
 
-    echo "* Invoke GUROBI on $model_name"
+        if ! python3 "${RAROG_ROOT}/ilp/gurobi.py" "$ILP_IN" "$ILP_OUT"; then
+            echo "Gurobi failed for $model_name" >&2
+            exit 1
+        fi
+        echo "* Done with $ILP_OUT"
+    fi
 
-    python3 ilp/gurobi.py $ILP_IN $ILP_OUT
-    echo "* Done with $ILP_OUT"
+    if ! python3 "$CHECK_ALLOCATION_SCRIPT" "$ILP_IN" "$ILP_OUT"; then
+        echo "Allocation validation failed for $model_name" >&2
+        exit 1
+    fi
 done
 
 # Run experiment
