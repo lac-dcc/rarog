@@ -11,8 +11,6 @@ namespace rarog {
 std::pair<llvm::SmallVector<size_t>, size_t> idealloc_allocation(
   llvm::SmallVector<std::tuple<size_t, size_t, size_t>> buffers) {
 
-  size_t neededSize = 0;
-
   llvm::SmallVector<size_t> allocationDecisions;
 
   std::vector<std::tuple<size_t, size_t, size_t>> _buffers;
@@ -31,12 +29,13 @@ std::pair<llvm::SmallVector<size_t>, size_t> idealloc_allocation(
 
   auto [placement, sz] = idealloc(std::move(jobs), max_frag, start, max_lives);
 
-  for (auto [_id, jobReg] : placement) {
-    auto job = jobReg.get();
-    allocationDecisions.emplace_back(job->offset);
+  llvm::outs() << "Idealloc found allocation with size " << sz << "\n";
+
+  for (int i = 0; i < buffers.size(); i++) {
+    allocationDecisions.emplace_back(placement[i].get()->offset);
   }
 
-  return {allocationDecisions, neededSize};
+  return {allocationDecisions, sz};
 }
 
 } // namespace rarog
