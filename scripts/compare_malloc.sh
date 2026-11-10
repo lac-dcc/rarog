@@ -57,8 +57,16 @@ if [[ $? = 0 ]]
 then
     rm $DYNAMIC_OUTPUT
     rm $DYNAMIC_OUTPUT_TAILED
+    rm $DYNAMIC_BINARY
+    rm $DYNAMIC_LL_FILE
+    rm $DYNAMIC_MODEL
     rm $STATIC_OUTPUT
     rm $STATIC_OUTPUT_TAILED
+    rm $STATIC_BINARY
+    rm $STATIC_LL_FILE
+    rm $STATIC_MODEL
+    rm $INSTRUMENTED_MODEL
+    rm $LINALG_MODEL
 else
     echo -e "\e[0;31mERROR:\e[0m Static output differs from dynamic output"
     exit 1
