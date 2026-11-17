@@ -34,7 +34,9 @@ then
     bash "${RAROG_ROOT}/scripts/run_instrumented.sh"
 fi
 
+mkdir -p "${RAROG_ROOT}/memory_allocation_input"
+
 $RAROG_OPT_PATH \
-    --nasbench-lowering-pipeline="enable-reorder-frees" \
+    --rarog-lowering-pipeline="enable-reorder-frees" \
     --memory-allocation-instantiation="result-file=${INSTRUMENTED_OUTPUT}" \
     $LINALG_MODEL -o /dev/null > $OUTPUT_FILE
