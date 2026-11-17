@@ -1,0 +1,3 @@
+[submodule "idealloc"]
+	path = idealloc
+	url = https://github.com/elisa-frohlich/idealloc-cpp

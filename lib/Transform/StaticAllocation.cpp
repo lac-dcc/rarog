@@ -1,4 +1,5 @@
 #include "FirstFitAllocation.h"
+#include "IdeallocAllocation.h"
 #include "ILPAllocation.h"
 #include "NaiveAllocation.h"
 
@@ -233,6 +234,8 @@ private:
       return naive_allocation(buffers);
     } else if (AllocationHeuristic == "ilp") {
       return ilp_allocation(buffers, IlpFilename);
+    } else if (AllocationHeuristic == "idealloc") {
+      return idealloc_allocation(buffers);
     } else { // first-fit
       return first_fit_allocation(buffers);
     }
